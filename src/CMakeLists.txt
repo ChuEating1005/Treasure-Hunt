@@ -5,6 +5,7 @@ add_executable(ICG_2024_HW4
 "object.cpp"
 "Steve.cpp"
 "Chest.cpp"
+"creeper.cpp"
 ) 
 target_link_libraries(ICG_2024_HW4
 glfw

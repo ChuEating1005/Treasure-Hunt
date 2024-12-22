@@ -12,6 +12,7 @@
 #include <regex>
 #include <glm/glm.hpp>
 #include <string.h>
+#include <glad/glad.h>  // Include GLAD instead of OpenGL directly
 
 using namespace std;
 
@@ -154,6 +155,13 @@ public:
     void load_to_buffer();
     void load_texture(const string& filepath);
     void render();
+    void set_texture_parameters() {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
     
 private:
     FACETYPE faceType = FACETYPE::TRIANGLE;

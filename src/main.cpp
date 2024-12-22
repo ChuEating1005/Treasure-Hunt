@@ -9,6 +9,7 @@
 #include "header/object.h"
 #include "header/Steve.h"
 #include "header/Chest.h"
+#include "header/creeper.h"
 
 void framebufferSizeCallback(GLFWwindow *window, int width, int height);
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -67,6 +68,13 @@ material_t material;
 camera_t camera;
 Steve* steve;
 Chest* chest;
+Creeper* creeper;
+
+// walking animation
+float legRotationAngle = 0.0f;
+float legRotationSpeed = 2.0f;
+bool isWalking = false;
+
 
 // model matrix
 int moveDir = -1;
@@ -113,6 +121,9 @@ void model_setup(){
 
     chest = new Chest;
     chest->setup(objDir, textureDir);
+
+    creeper = new Creeper();
+    creeper->setup(objDir, textureDir);
 }
 
 
@@ -241,8 +252,13 @@ void render(){
     // steve->update();
     // steve->render(shaderPrograms[shaderProgramIndex], view, projection);
 
-    chest->update();
-    chest->render(shaderPrograms[shaderProgramIndex], view, projection);
+    // chest->update();
+    // chest->render(shaderPrograms[shaderProgramIndex], view, projection);
+
+    // Render creeper
+    creeper->update(isWalking);
+    creeper->render(shaderPrograms[shaderProgramIndex], view, projection);
+
 
     glm::vec3 eye = glm::vec3(cameraModel[3]);
     // Set uniform value for Blin-Phong shader and Gouraud shader
@@ -427,6 +443,17 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         chest->open();
     if (key == GLFW_KEY_C && (action == GLFW_REPEAT || action == GLFW_PRESS))
         chest->close();
+
+    if (key == GLFW_KEY_L && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
+        creeper->rotateHead(-5.0f);  // Turn head left
+    }
+    if (key == GLFW_KEY_J && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
+        creeper->rotateHead(5.0f);   // Turn head right
+    }
+    
+    if (key == GLFW_KEY_H && action == GLFW_PRESS) {
+        creeper->toggleScaleAndShimmer();
+    }
 
 }
 
