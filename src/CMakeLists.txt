@@ -1,0 +1,13 @@
+add_executable(ICG_2024_HW4
+"main.cpp"
+"stb_image.cpp"
+"shader.cpp"
+"object.cpp"
+"Steve.cpp"
+"Chest.cpp"
+) 
+target_link_libraries(ICG_2024_HW4
+glfw
+glm::glm
+glad
+)
