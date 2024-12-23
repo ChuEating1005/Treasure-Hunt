@@ -70,12 +70,6 @@ Steve* steve;
 Chest* chest;
 Creeper* creeper;
 
-// walking animation
-float legRotationAngle = 0.0f;
-float legRotationSpeed = 2.0f;
-bool isWalking = false;
-
-
 // model matrix
 int moveDir = -1;
 glm::mat4 cameraModel;
@@ -256,7 +250,7 @@ void render(){
     // chest->render(shaderPrograms[shaderProgramIndex], view, projection);
 
     // Render creeper
-    creeper->update(isWalking);
+    creeper->update();
     creeper->render(shaderPrograms[shaderProgramIndex], view, projection);
 
 
@@ -454,6 +448,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_H && action == GLFW_PRESS) {
         creeper->toggleScaleAndShimmer();
     }
+    
+    if (key == GLFW_KEY_K && action == GLFW_PRESS) {
+        creeper->toggleWalking();
+    }
 
 }
 
@@ -496,4 +494,4 @@ unsigned int loadCubemap(vector<std::string>& faces){
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     return texture;
-}  
+}

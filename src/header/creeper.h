@@ -11,7 +11,7 @@ public:
     ~Creeper();
     
     void setup(const std::string& objDir, const std::string& textureDir);
-    void update(bool isWalking);
+    void update();
     void render(shader_program_t* shader, const glm::mat4& view, const glm::mat4& projection);
     void rotateHead(float angle) {
         float newRotation = headRotationY + angle;
@@ -21,6 +21,9 @@ public:
     }
     void toggleScaleAndShimmer() {
         isScalingAndShimmering = !isScalingAndShimmering;
+    }
+    void toggleWalking() {
+        isWalking = !isWalking;
     }
 
 private:
@@ -46,6 +49,7 @@ private:
     float headRotationY;  // Add this line for head rotation
     bool isScalingAndShimmering;
     float scaleTime;
+    bool isWalking = false;
 };
 
 #endif

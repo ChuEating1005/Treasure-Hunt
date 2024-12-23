@@ -8,6 +8,7 @@ Creeper::Creeper() :
     headBobAngle(0.0f),
     headRotationY(0.0f),
     isScalingAndShimmering(false),
+    isWalking(false),
     scaleTime(0.0f)
 {}
 
@@ -78,7 +79,7 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     
 }
 
-void Creeper::update(bool isWalking) {
+void Creeper::update() {
     if (isScalingAndShimmering) {
         scaleTime += 0.024f; // Increased from 0.016f for faster scaling
         float baseScaleFactor = 1.0f + 0.3f * scaleTime; // Increased from 0.2f for faster base scaling
