@@ -46,14 +46,13 @@ private:
     float legRotationAngle;
     float legRotationSpeed;
     float bodyHeight; 
-    float headBobAngle; 
-    float headRotationY;  // Add this line for head rotation
+    float headRotationY;
     bool isScalingAndShimmering;
     float scaleTime;
     float explodeFactor;
     bool isWalking = false;
-    
-    bool isExploded; // Added to track explosion state
+    bool isExploded; 
+    float scaleRatio;
 };
 
 #endif

@@ -24,7 +24,7 @@ Steve::~Steve() {
 
 void Steve::setup(const string& objDir, const string& textureDir){
     
-    body.position = glm::vec3(0.0f, 0.0f, 0.0f);
+    body.position = glm::vec3(0.0f, 5.0f, 0.0f);
     body.scale = glm::vec3(1.0f, 1.0f, 1.0f);
     body.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
     body.object = new Object(objDir + "steve/body.obj");
@@ -32,6 +32,7 @@ void Steve::setup(const string& objDir, const string& textureDir){
     body.object->load_texture(textureDir + "steve.png");
     body.model = glm::mat4(1.0f);
     body.model = glm::translate(body.model, body.position);
+    body.model = glm::rotate(body.model, body.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
     body.model = glm::scale(body.model, body.scale);
 
     head.position = body.position;
@@ -42,6 +43,7 @@ void Steve::setup(const string& objDir, const string& textureDir){
     head.object->load_texture(textureDir + "steve.png");
     head.model = glm::mat4(1.0f);
     head.model = glm::translate(head.model, head.position);
+    head.model = glm::rotate(head.model, head.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
     head.model = glm::scale(head.model, head.scale);
 
     leftHand.position = body.position;
@@ -52,6 +54,7 @@ void Steve::setup(const string& objDir, const string& textureDir){
     leftHand.object->load_texture(textureDir + "steve.png");
     leftHand.model = glm::mat4(1.0f);
     leftHand.model = glm::translate(leftHand.model, leftHand.position);
+    leftHand.model = glm::rotate(leftHand.model, leftHand.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
     leftHand.model = glm::scale(leftHand.model, leftHand.scale);
 
     rightHand.position = body.position;
@@ -62,6 +65,7 @@ void Steve::setup(const string& objDir, const string& textureDir){
     rightHand.object->load_texture(textureDir + "steve.png");
     rightHand.model = glm::mat4(1.0f);
     rightHand.model = glm::translate(rightHand.model, rightHand.position);
+    rightHand.model = glm::rotate(rightHand.model, rightHand.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
     rightHand.model = glm::scale(rightHand.model, rightHand.scale);
 
     leftLeg.position = body.position;
@@ -72,6 +76,7 @@ void Steve::setup(const string& objDir, const string& textureDir){
     leftLeg.object->load_texture(textureDir + "steve.png");
     leftLeg.model = glm::mat4(1.0f);
     leftLeg.model = glm::translate(leftLeg.model, leftLeg.position);
+    leftLeg.model = glm::rotate(leftLeg.model, leftLeg.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
     leftLeg.model = glm::scale(leftLeg.model, leftLeg.scale);
 
     rightLeg.position = body.position;
@@ -82,6 +87,7 @@ void Steve::setup(const string& objDir, const string& textureDir){
     rightLeg.object->load_texture(textureDir + "steve.png");
     rightLeg.model = glm::mat4(1.0f);
     rightLeg.model = glm::translate(rightLeg.model, rightLeg.position);
+    rightLeg.model = glm::rotate(rightLeg.model, rightLeg.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
     rightLeg.model = glm::scale(rightLeg.model, rightLeg.scale);
 }
 
@@ -91,6 +97,11 @@ void Steve::render(shader_program_t* shader, const glm::mat4& view, const glm::m
     // Set matrix for view, projection, model transformation
     shader->set_uniform_value("view", view);
     shader->set_uniform_value("projection", projection);
+
+    // Set material properties
+    shader->set_uniform_value("isShimmering", false);
+    shader->set_uniform_value("explodeFactor", 0.0f);
+    shader->set_uniform_value("whiteFlash", false);
 
     // Render body
     shader->set_uniform_value("model", body.model);

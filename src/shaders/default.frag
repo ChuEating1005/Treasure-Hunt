@@ -16,7 +16,8 @@ uniform bool whiteFlash;
 void main() {
     vec4 texColor = texture(ourTexture, gTexCoord);
     
-    if (whiteFlash) {
+    // Only apply shimmering effect if isShimmering flag is true
+    if (whiteFlash && gExplodeFactor > 0.0) {
         texColor = vec4(1.0, 1.0, 1.0, 1.0);
     } else if (isShimmering) {
         float shimmerIntensity = 0.5 * (sin(shimmerTime * 5.0) * 0.5 + 0.5);

@@ -5,13 +5,13 @@ Creeper::Creeper() :
     legRotationAngle(0.0f), 
     legRotationSpeed(3.0f),
     bodyHeight(0.0f),
-    headBobAngle(0.0f),
     headRotationY(0.0f),
     isScalingAndShimmering(false),
     isWalking(false),
     scaleTime(0.0f),
     explodeFactor(0.0f),
-    isExploded(false) // Initialize isExploded
+    isExploded(false), // Initialize isExploded
+    scaleRatio(8.0f)
 {}
 
 Creeper::~Creeper() {
@@ -25,8 +25,8 @@ Creeper::~Creeper() {
 
 void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     // Initialize base properties
-    glm::vec3 basePosition(0.0f, 0.0f, 0.0f);
-    glm::vec3 baseScale(8.0f, 8.0f, 8.0f);
+    glm::vec3 basePosition(0.0f, 0.0f, -10.0f);
+    glm::vec3 baseScale(scaleRatio*1.0f, scaleRatio*1.0f, scaleRatio*1.0f);
     glm::vec3 baseRotation(0.0f, 0.0f, 0.0f);
 
     // Setup body
@@ -47,6 +47,7 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     head.object->load_texture(textureDir + "creeper.png");
     head.object->set_texture_parameters();
 
+    // Setup front legs
     leftFrontLeg.position = basePosition + glm::vec3(0.0f, 0.4f, 0.0f);
     leftFrontLeg.scale = baseScale;
     leftFrontLeg.rotation = baseRotation;
@@ -55,14 +56,6 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     leftFrontLeg.object->load_texture(textureDir + "creeper.png");
     leftFrontLeg.object->set_texture_parameters();
 
-    leftBackLeg.position = basePosition + glm::vec3(0.0f, 0.4f, 0.0f);
-    leftBackLeg.scale = baseScale;
-    leftBackLeg.rotation = baseRotation;
-    leftBackLeg.object = new Object(objDir + "creeper/left_back_leg.obj");
-    leftBackLeg.object->load_to_buffer();
-    leftBackLeg.object->load_texture(textureDir + "creeper.png");
-    leftBackLeg.object->set_texture_parameters();
-
     rightFrontLeg.position = basePosition + glm::vec3(0.0f, 0.4f, 0.0f);
     rightFrontLeg.scale = baseScale;
     rightFrontLeg.rotation = baseRotation;
@@ -70,6 +63,15 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     rightFrontLeg.object->load_to_buffer();
     rightFrontLeg.object->load_texture(textureDir + "creeper.png");
     rightFrontLeg.object->set_texture_parameters();
+
+    // Setup back legs
+    leftBackLeg.position = basePosition + glm::vec3(0.0f, 0.4f, 0.0f);
+    leftBackLeg.scale = baseScale;
+    leftBackLeg.rotation = baseRotation;
+    leftBackLeg.object = new Object(objDir + "creeper/left_back_leg.obj");
+    leftBackLeg.object->load_to_buffer();
+    leftBackLeg.object->load_texture(textureDir + "creeper.png");
+    leftBackLeg.object->set_texture_parameters();
 
     rightBackLeg.position = basePosition + glm::vec3(0.0f, 0.4f, 0.0f);
     rightBackLeg.scale = baseScale;
@@ -169,20 +171,29 @@ void Creeper::update() {
         const float frontAttachZ = 3.0f;
         const float backAttachZ = -3.0f;
 
-        // Apply body bounce
+        // Apply body bounce and rotation
         body.model = glm::mat4(1.0f);
         body.model = glm::translate(body.model, body.position + glm::vec3(0.0f, bodyHeight, 0.0f));
+        body.model = glm::rotate(body.model, body.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+        body.model = glm::rotate(body.model, body.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+        body.model = glm::rotate(body.model, body.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
         body.model = glm::scale(body.model, body.scale);
         
         // Apply head bob and rotation
         head.model = glm::mat4(1.0f);
         head.model = glm::translate(head.model, head.position + glm::vec3(0.0f, bodyHeight, 0.0f));
+        head.model = glm::rotate(head.model, head.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)); // Apply body rotation
+        head.model = glm::rotate(head.model, head.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)); // Apply body rotation
+        head.model = glm::rotate(head.model, head.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
         head.model = glm::rotate(head.model, glm::radians(headRotationY), glm::vec3(0.0f, 1.0f, 0.0f));
         head.model = glm::scale(head.model, head.scale);
         
-        // Front legs
+        // Front legs (apply body rotation to legs as well)
         leftFrontLeg.model = glm::mat4(1.0f);
-        leftFrontLeg.model = glm::translate(leftFrontLeg.model, leftFrontLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f) );
+        leftFrontLeg.model = glm::translate(leftFrontLeg.model, leftFrontLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f));
+        leftFrontLeg.model = glm::rotate(leftFrontLeg.model, leftFrontLeg.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+        leftFrontLeg.model = glm::rotate(leftFrontLeg.model, leftFrontLeg.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+        leftFrontLeg.model = glm::rotate(leftFrontLeg.model, leftFrontLeg.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
         leftFrontLeg.model = glm::translate(leftFrontLeg.model, glm::vec3(0.0f, frontAttachY, frontAttachZ));
         leftFrontLeg.model = glm::rotate(leftFrontLeg.model, glm::radians(frontLeftLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
         leftFrontLeg.model = glm::translate(leftFrontLeg.model, glm::vec3(0.0f, -frontAttachY, -frontAttachZ));
@@ -190,14 +201,20 @@ void Creeper::update() {
         
         rightFrontLeg.model = glm::mat4(1.0f);
         rightFrontLeg.model = glm::translate(rightFrontLeg.model, rightFrontLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f));
+        rightFrontLeg.model = glm::rotate(rightFrontLeg.model, rightFrontLeg.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+        rightFrontLeg.model = glm::rotate(rightFrontLeg.model, rightFrontLeg.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+        rightFrontLeg.model = glm::rotate(rightFrontLeg.model, rightFrontLeg.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
         rightFrontLeg.model = glm::translate(rightFrontLeg.model, glm::vec3(0.0f, frontAttachY, frontAttachZ));
         rightFrontLeg.model = glm::rotate(rightFrontLeg.model, glm::radians(frontRightLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
         rightFrontLeg.model = glm::translate(rightFrontLeg.model, glm::vec3(0.0f, -frontAttachY, -frontAttachZ));
         rightFrontLeg.model = glm::scale(rightFrontLeg.model, rightFrontLeg.scale);
         
-        // Back legs
+        // Back legs (apply body rotation to legs as well)
         leftBackLeg.model = glm::mat4(1.0f);
         leftBackLeg.model = glm::translate(leftBackLeg.model, leftBackLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f));
+        leftBackLeg.model = glm::rotate(leftBackLeg.model, leftBackLeg.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+        leftBackLeg.model = glm::rotate(leftBackLeg.model, leftBackLeg.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+        leftBackLeg.model = glm::rotate(leftBackLeg.model, leftBackLeg.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
         leftBackLeg.model = glm::translate(leftBackLeg.model, glm::vec3(0.0f, backAttachY, backAttachZ));
         leftBackLeg.model = glm::rotate(leftBackLeg.model, glm::radians(backLeftLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
         leftBackLeg.model = glm::translate(leftBackLeg.model, glm::vec3(0.0f, -backAttachY, -backAttachZ));
@@ -205,6 +222,9 @@ void Creeper::update() {
         
         rightBackLeg.model = glm::mat4(1.0f);
         rightBackLeg.model = glm::translate(rightBackLeg.model, rightBackLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f) );
+        rightBackLeg.model = glm::rotate(rightBackLeg.model, rightBackLeg.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+        rightBackLeg.model = glm::rotate(rightBackLeg.model, rightBackLeg.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+        rightBackLeg.model = glm::rotate(rightBackLeg.model, rightBackLeg.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
         rightBackLeg.model = glm::translate(rightBackLeg.model, glm::vec3(0.0f, backAttachY, backAttachZ));
         rightBackLeg.model = glm::rotate(rightBackLeg.model, glm::radians(backRightLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
         rightBackLeg.model = glm::translate(rightBackLeg.model, glm::vec3(0.0f, -backAttachY, -backAttachZ));
@@ -233,8 +253,13 @@ void Creeper::render(shader_program_t* shader, const glm::mat4& view, const glm:
     shader->set_uniform_value("view", view);
     shader->set_uniform_value("projection", projection);
 
+    // Set material properties
+    shader->set_uniform_value("isShimmering", isScalingAndShimmering);
+    shader->set_uniform_value("shimmerTime", scaleTime);
+    shader->set_uniform_value("explodeFactor", explodeFactor);
+
     // Add white flash uniform
-    bool whiteFlash = isScalingAndShimmering && (scaleTime >= 1.5f);
+    bool whiteFlash = isExploded && (explodeFactor > 0.0f);
     shader->set_uniform_value("whiteFlash", whiteFlash);
 
     // Render body
@@ -254,10 +279,6 @@ void Creeper::render(shader_program_t* shader, const glm::mat4& view, const glm:
     leftBackLeg.object->render();
     shader->set_uniform_value("model", rightBackLeg.model);
     rightBackLeg.object->render();
-
-    shader->set_uniform_value("isShimmering", isScalingAndShimmering);
-    shader->set_uniform_value("shimmerTime", scaleTime);
-    shader->set_uniform_value("explodeFactor", explodeFactor);
 
     shader->release();
 }

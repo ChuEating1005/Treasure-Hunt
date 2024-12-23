@@ -11,7 +11,7 @@ Chest::Chest() {
     animationTime = 0.0f;
     openSpeed = 4.0f;
     isOpen = false;
-    scaleRatio = 5.0f;
+    scaleRatio = 3.0f;
 }
 
 Chest::~Chest() {
@@ -21,7 +21,7 @@ Chest::~Chest() {
 
 void Chest::setup(const string& objDir, const string& textureDir){
     
-    container.position = glm::vec3(0.0f, 7.0f, 0.0f);
+    container.position = glm::vec3(0.0f, 0.0f, 10.0f);
     container.scale = glm::vec3(scaleRatio * 1.0f, scaleRatio * 1.0f, scaleRatio * 1.0f);
     container.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
     container.object = new Object(objDir + "chest/container.obj");
@@ -29,6 +29,7 @@ void Chest::setup(const string& objDir, const string& textureDir){
     container.object->load_texture(textureDir + "chest.png");
     container.model = glm::mat4(1.0f);
     container.model = glm::translate(container.model, container.position);
+    container.model = glm::rotate(container.model, container.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
     container.model = glm::scale(container.model, container.scale);
 
     lid.position = container.position;
@@ -39,6 +40,7 @@ void Chest::setup(const string& objDir, const string& textureDir){
     lid.object->load_texture(textureDir + "chest.png");
     lid.model = glm::mat4(1.0f);
     lid.model = glm::translate(lid.model, lid.position);
+    lid.model = glm::rotate(lid.model, lid.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
     lid.model = glm::scale(lid.model, lid.scale);
 }
 
@@ -48,6 +50,11 @@ void Chest::render(shader_program_t* shader, const glm::mat4& view, const glm::m
     // Set matrix for view, projection, model transformation
     shader->set_uniform_value("view", view);
     shader->set_uniform_value("projection", projection);
+
+    // Set material properties
+    shader->set_uniform_value("isShimmering", false);
+    shader->set_uniform_value("explodeFactor", 0.0f);
+    shader->set_uniform_value("whiteFlash", false);
 
     shader->set_uniform_value("model", container.model);
     container.object->render();

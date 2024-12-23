@@ -81,7 +81,7 @@ glm::mat4 cameraModel;
 // You can change any of the settings if you want
 
 void camera_setup(){
-    camera.position = glm::vec3(0.0, 20.0, 100.0);
+    camera.position = glm::vec3(0.0, 10.0, 100.0);
     camera.up = glm::vec3(0.0, 1.0, 0.0);
     camera.rotationY = 0;
 }
@@ -248,14 +248,13 @@ void render(){
     // Calculate view, projection matrix
     glm::mat4 view = glm::lookAt(glm::vec3(cameraModel[3]), glm::vec3(0.0), camera.up);
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+    
+    steve->update();
+    steve->render(shaderPrograms[shaderProgramIndex], view, projection);
 
-    // steve->update();
-    // steve->render(shaderPrograms[shaderProgramIndex], view, projection);
+    chest->update();
+    chest->render(shaderPrograms[shaderProgramIndex], view, projection);
 
-    // chest->update();
-    // chest->render(shaderPrograms[shaderProgramIndex], view, projection);
-
-    // Render creeper
     creeper->update();
     creeper->render(shaderPrograms[shaderProgramIndex], view, projection);
 
@@ -411,18 +410,18 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         glfwSetWindowShouldClose(window, true);
 
     // shader program selection
-    if (key == GLFW_KEY_0 && (action == GLFW_REPEAT || action == GLFW_PRESS)) 
-        shaderProgramIndex = 0;
-    if (key == GLFW_KEY_1 && (action == GLFW_REPEAT || action == GLFW_PRESS)) 
-        shaderProgramIndex = 1;
-    if (key == GLFW_KEY_2 && (action == GLFW_REPEAT || action == GLFW_PRESS)) 
-        shaderProgramIndex = 2;
-    if (key == GLFW_KEY_3 && (action == GLFW_REPEAT || action == GLFW_PRESS))
-        shaderProgramIndex = 3;
-    if (key == GLFW_KEY_4 && (action == GLFW_REPEAT || action == GLFW_PRESS))
-        shaderProgramIndex = 4;
-    if (key == GLFW_KEY_5 && (action == GLFW_REPEAT || action == GLFW_PRESS))
-        shaderProgramIndex = 5;
+    // if (key == GLFW_KEY_0 && (action == GLFW_REPEAT || action == GLFW_PRESS)) 
+    //     shaderProgramIndex = 0;
+    // if (key == GLFW_KEY_1 && (action == GLFW_REPEAT || action == GLFW_PRESS)) 
+    //     shaderProgramIndex = 1;
+    // if (key == GLFW_KEY_2 && (action == GLFW_REPEAT || action == GLFW_PRESS)) 
+    //     shaderProgramIndex = 2;
+    // if (key == GLFW_KEY_3 && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    //     shaderProgramIndex = 3;
+    // if (key == GLFW_KEY_4 && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    //     shaderProgramIndex = 4;
+    // if (key == GLFW_KEY_5 && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    //     shaderProgramIndex = 5;
 
     // camera movement
     float cameraSpeed = 0.5f;
