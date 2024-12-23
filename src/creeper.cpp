@@ -9,7 +9,9 @@ Creeper::Creeper() :
     headRotationY(0.0f),
     isScalingAndShimmering(false),
     isWalking(false),
-    scaleTime(0.0f)
+    scaleTime(0.0f),
+    explodeFactor(0.0f),
+    isExploded(false) // Initialize isExploded
 {}
 
 Creeper::~Creeper() {
@@ -79,34 +81,15 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     
 }
 
-void Creeper::update() {
-    if (isScalingAndShimmering) {
-        scaleTime += 0.024f; // Increased from 0.016f for faster scaling
-        float baseScaleFactor = 1.0f + 0.3f * scaleTime; // Increased from 0.2f for faster base scaling
-        baseScaleFactor = glm::min(baseScaleFactor, 1.5f);
-
-        float horizontalExtra = 0.0f;
-        if (baseScaleFactor > 1.2f) {
-            float t = (baseScaleFactor - 1.2f) / 0.3f;
-            float smoothT = t * t * (3.0f - 2.0f * t);
-            horizontalExtra = 0.4f * smoothT; // Increased from 0.3f for faster horizontal scaling
-        }
-
-        // Apply different scales for horizontal and vertical with smooth transition
-        glm::vec3 scaleFactor(
-            8.0f * (baseScaleFactor + horizontalExtra),
-            8.0f * baseScaleFactor,
-            8.0f * (baseScaleFactor + horizontalExtra)
-        );
-
-        body.scale = scaleFactor;
-        head.scale = scaleFactor;
-        leftFrontLeg.scale = scaleFactor;
-        rightFrontLeg.scale = scaleFactor;
-        leftBackLeg.scale = scaleFactor;
-        rightBackLeg.scale = scaleFactor;
-    } else {
-        scaleTime = 0.0f;
+// Modify toggleScaleAndShimmer to initiate scaling and trigger explosion after scaling
+void Creeper::toggleScaleAndShimmer() {
+    if (!isExploded && !isScalingAndShimmering) {
+        isScalingAndShimmering = true;
+    } else if (isExploded) {
+        // Reset explosion
+        isExploded = false;
+        explodeFactor = 0.0f;
+        // Reset scale
         glm::vec3 baseScale(8.0f);
         body.scale = baseScale;
         head.scale = baseScale;
@@ -115,69 +98,133 @@ void Creeper::update() {
         leftBackLeg.scale = baseScale;
         rightBackLeg.scale = baseScale;
     }
+}
 
-    if (isWalking) {
-        legRotationAngle += legRotationSpeed;
-        if (legRotationAngle >= 360.0f) {
-            legRotationAngle = 0.0f;
+// Modify update to handle scaling and transition to explosion
+void Creeper::update() {
+    if (isExploded) {
+        // Gradually increase the explosion factor
+        explodeFactor += 0.05f;
+        if (explodeFactor > 1.0f) {
+            explodeFactor = 1.0f;
+        }
+    } else {
+        if (isScalingAndShimmering) {
+            scaleTime += 0.024f;
+            float scaleFactor = 1.0f + 0.3f * scaleTime;
+            
+            // If we've reached max scale, start the explosion
+            if (scaleFactor >= 1.5f) {
+                isScalingAndShimmering = false;
+                isExploded = true;
+                scaleTime = 0.0f;
+            } else {
+                scaleFactor = glm::min(scaleFactor, 1.5f);
+
+                // Scale more in width (x,z) and less in height (y)
+                float heightScale = 1.0f + 0.15f * scaleTime; // Half the scale factor for height
+                heightScale = glm::min(heightScale, 1.25f);
+                
+                glm::vec3 baseScale(8.0f * scaleFactor, 8.0f * heightScale, 8.0f * scaleFactor);
+
+                body.scale = baseScale;
+                head.scale = baseScale;
+                leftFrontLeg.scale = baseScale;
+                rightFrontLeg.scale = baseScale;
+                leftBackLeg.scale = baseScale;
+                rightBackLeg.scale = baseScale;
+            }
+        } else {
+            if (explodeFactor == 0.0f) {  // Only reset scale if not exploding
+                scaleTime = 0.0f;
+                glm::vec3 baseScale(8.0f);
+                body.scale = baseScale;
+                head.scale = baseScale;
+                leftFrontLeg.scale = baseScale;
+                rightFrontLeg.scale = baseScale;
+                leftBackLeg.scale = baseScale;
+                rightBackLeg.scale = baseScale;
+            }
+        }
+
+        if (isWalking) {
+            legRotationAngle += legRotationSpeed;
+            if (legRotationAngle >= 360.0f) {
+                legRotationAngle = 0.0f;
+            }
+            
+            // Update body height with a subtle bounce
+            bodyHeight = 0.2f * sin(glm::radians(legRotationAngle * 2.0f));
         }
         
-        // Update body height with a subtle bounce
-        bodyHeight = 0.2f * sin(glm::radians(legRotationAngle * 2.0f));
+        // Calculate diagonal leg movements (opposite legs move together)
+        float frontLeftLegAngle = 10.0f * sin(glm::radians(legRotationAngle));
+        float frontRightLegAngle = -frontLeftLegAngle;
+        float backLeftLegAngle = -frontLeftLegAngle;
+        float backRightLegAngle = frontLeftLegAngle;
+
+        // Constants for attachment points
+        const float frontAttachY = 3.0f;
+        const float backAttachY = 3.0f;
+        const float frontAttachZ = 3.0f;
+        const float backAttachZ = -3.0f;
+
+        // Apply body bounce
+        body.model = glm::mat4(1.0f);
+        body.model = glm::translate(body.model, body.position + glm::vec3(0.0f, bodyHeight, 0.0f));
+        body.model = glm::scale(body.model, body.scale);
+        
+        // Apply head bob and rotation
+        head.model = glm::mat4(1.0f);
+        head.model = glm::translate(head.model, head.position + glm::vec3(0.0f, bodyHeight, 0.0f));
+        head.model = glm::rotate(head.model, glm::radians(headRotationY), glm::vec3(0.0f, 1.0f, 0.0f));
+        head.model = glm::scale(head.model, head.scale);
+        
+        // Front legs
+        leftFrontLeg.model = glm::mat4(1.0f);
+        leftFrontLeg.model = glm::translate(leftFrontLeg.model, leftFrontLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f) );
+        leftFrontLeg.model = glm::translate(leftFrontLeg.model, glm::vec3(0.0f, frontAttachY, frontAttachZ));
+        leftFrontLeg.model = glm::rotate(leftFrontLeg.model, glm::radians(frontLeftLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
+        leftFrontLeg.model = glm::translate(leftFrontLeg.model, glm::vec3(0.0f, -frontAttachY, -frontAttachZ));
+        leftFrontLeg.model = glm::scale(leftFrontLeg.model, leftFrontLeg.scale);
+        
+        rightFrontLeg.model = glm::mat4(1.0f);
+        rightFrontLeg.model = glm::translate(rightFrontLeg.model, rightFrontLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f));
+        rightFrontLeg.model = glm::translate(rightFrontLeg.model, glm::vec3(0.0f, frontAttachY, frontAttachZ));
+        rightFrontLeg.model = glm::rotate(rightFrontLeg.model, glm::radians(frontRightLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
+        rightFrontLeg.model = glm::translate(rightFrontLeg.model, glm::vec3(0.0f, -frontAttachY, -frontAttachZ));
+        rightFrontLeg.model = glm::scale(rightFrontLeg.model, rightFrontLeg.scale);
+        
+        // Back legs
+        leftBackLeg.model = glm::mat4(1.0f);
+        leftBackLeg.model = glm::translate(leftBackLeg.model, leftBackLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f));
+        leftBackLeg.model = glm::translate(leftBackLeg.model, glm::vec3(0.0f, backAttachY, backAttachZ));
+        leftBackLeg.model = glm::rotate(leftBackLeg.model, glm::radians(backLeftLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
+        leftBackLeg.model = glm::translate(leftBackLeg.model, glm::vec3(0.0f, -backAttachY, -backAttachZ));
+        leftBackLeg.model = glm::scale(leftBackLeg.model, leftBackLeg.scale);
+        
+        rightBackLeg.model = glm::mat4(1.0f);
+        rightBackLeg.model = glm::translate(rightBackLeg.model, rightBackLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f) );
+        rightBackLeg.model = glm::translate(rightBackLeg.model, glm::vec3(0.0f, backAttachY, backAttachZ));
+        rightBackLeg.model = glm::rotate(rightBackLeg.model, glm::radians(backRightLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
+        rightBackLeg.model = glm::translate(rightBackLeg.model, glm::vec3(0.0f, -backAttachY, -backAttachZ));
+        rightBackLeg.model = glm::scale(rightBackLeg.model, rightBackLeg.scale);
+
+        if (isExploded) {
+            // Gradually increase the explosion factor
+            explodeFactor += 0.05f;
+            if (explodeFactor > 1.0f) {
+                explodeFactor = 1.0f;
+            }
+        } else {
+            if (explodeFactor > 0.0f) {
+                explodeFactor -= 0.02f; // Slowed down the explosion effect
+                if (explodeFactor < 0.0f) {
+                    explodeFactor = 0.0f;
+                }
+            }
+        }
     }
-
-    // Calculate diagonal leg movements (opposite legs move together)
-    float frontLeftLegAngle = 10.0f * sin(glm::radians(legRotationAngle));
-    float frontRightLegAngle = -frontLeftLegAngle;
-    float backLeftLegAngle = -frontLeftLegAngle;
-    float backRightLegAngle = frontLeftLegAngle;
-
-    // Constants for attachment points
-    const float frontAttachY = 3.0f;
-    const float backAttachY = 3.0f;
-    const float frontAttachZ = 3.0f;
-    const float backAttachZ = -3.0f;
-
-    // Apply body bounce
-    body.model = glm::mat4(1.0f);
-    body.model = glm::translate(body.model, body.position + glm::vec3(0.0f, bodyHeight, 0.0f));
-    body.model = glm::scale(body.model, body.scale);
-    
-    // Apply head bob and rotation
-    head.model = glm::mat4(1.0f);
-    head.model = glm::translate(head.model, head.position + glm::vec3(0.0f, bodyHeight, 0.0f));
-    head.model = glm::rotate(head.model, glm::radians(headRotationY), glm::vec3(0.0f, 1.0f, 0.0f));
-    head.model = glm::scale(head.model, head.scale);
-    
-    // Front legs
-    leftFrontLeg.model = glm::mat4(1.0f);
-    leftFrontLeg.model = glm::translate(leftFrontLeg.model, leftFrontLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f) );
-    leftFrontLeg.model = glm::translate(leftFrontLeg.model, glm::vec3(0.0f, frontAttachY, frontAttachZ));
-    leftFrontLeg.model = glm::rotate(leftFrontLeg.model, glm::radians(frontLeftLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
-    leftFrontLeg.model = glm::translate(leftFrontLeg.model, glm::vec3(0.0f, -frontAttachY, -frontAttachZ));
-    leftFrontLeg.model = glm::scale(leftFrontLeg.model, leftFrontLeg.scale);
-    
-    rightFrontLeg.model = glm::mat4(1.0f);
-    rightFrontLeg.model = glm::translate(rightFrontLeg.model, rightFrontLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f));
-    rightFrontLeg.model = glm::translate(rightFrontLeg.model, glm::vec3(0.0f, frontAttachY, frontAttachZ));
-    rightFrontLeg.model = glm::rotate(rightFrontLeg.model, glm::radians(frontRightLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
-    rightFrontLeg.model = glm::translate(rightFrontLeg.model, glm::vec3(0.0f, -frontAttachY, -frontAttachZ));
-    rightFrontLeg.model = glm::scale(rightFrontLeg.model, rightFrontLeg.scale);
-    
-    // Back legs
-    leftBackLeg.model = glm::mat4(1.0f);
-    leftBackLeg.model = glm::translate(leftBackLeg.model, leftBackLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f));
-    leftBackLeg.model = glm::translate(leftBackLeg.model, glm::vec3(0.0f, backAttachY, backAttachZ));
-    leftBackLeg.model = glm::rotate(leftBackLeg.model, glm::radians(backLeftLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
-    leftBackLeg.model = glm::translate(leftBackLeg.model, glm::vec3(0.0f, -backAttachY, -backAttachZ));
-    leftBackLeg.model = glm::scale(leftBackLeg.model, leftBackLeg.scale);
-    
-    rightBackLeg.model = glm::mat4(1.0f);
-    rightBackLeg.model = glm::translate(rightBackLeg.model, rightBackLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f) );
-    rightBackLeg.model = glm::translate(rightBackLeg.model, glm::vec3(0.0f, backAttachY, backAttachZ));
-    rightBackLeg.model = glm::rotate(rightBackLeg.model, glm::radians(backRightLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
-    rightBackLeg.model = glm::translate(rightBackLeg.model, glm::vec3(0.0f, -backAttachY, -backAttachZ));
-    rightBackLeg.model = glm::scale(rightBackLeg.model, rightBackLeg.scale);
 }
 
 void Creeper::render(shader_program_t* shader, const glm::mat4& view, const glm::mat4& projection) {
@@ -185,6 +232,10 @@ void Creeper::render(shader_program_t* shader, const glm::mat4& view, const glm:
     
     shader->set_uniform_value("view", view);
     shader->set_uniform_value("projection", projection);
+
+    // Add white flash uniform
+    bool whiteFlash = isScalingAndShimmering && (scaleTime >= 1.5f);
+    shader->set_uniform_value("whiteFlash", whiteFlash);
 
     // Render body
     shader->set_uniform_value("model", body.model);
@@ -206,6 +257,7 @@ void Creeper::render(shader_program_t* shader, const glm::mat4& view, const glm:
 
     shader->set_uniform_value("isShimmering", isScalingAndShimmering);
     shader->set_uniform_value("shimmerTime", scaleTime);
+    shader->set_uniform_value("explodeFactor", explodeFactor);
 
     shader->release();
 }

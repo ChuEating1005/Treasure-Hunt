@@ -74,6 +74,8 @@ Creeper* creeper;
 int moveDir = -1;
 glm::mat4 cameraModel;
 
+
+
 //////////////////////////////////////////////////////////////////////////
 // Parameter setup, 
 // You can change any of the settings if you want
@@ -133,17 +135,19 @@ void shader_setup(){
 
     std::vector<std::string> shadingMethod = {
         "default",                              // default shading
-        "bling-phong", "gouraud", "metallic",   // addional shading effects (basic)
-        "glass_schlick", "glass_empricial",     // addional shading effects (advanced)
+        // "bling-phong", "gouraud", "metallic",   // addional shading effects (basic)
+        // "glass_schlick", "glass_empricial",     // addional shading effects (advanced)
     };
 
     for(int i=0; i<shadingMethod.size(); i++){
         std::string vpath = shaderDir + shadingMethod[i] + ".vert";
+        std::string gpath = shaderDir + shadingMethod[i] + ".geom";
         std::string fpath = shaderDir + shadingMethod[i] + ".frag";
 
         shader_program_t* shaderProgram = new shader_program_t();
         shaderProgram->create();
         shaderProgram->add_shader(vpath, GL_VERTEX_SHADER);
+        shaderProgram->add_shader(gpath, GL_GEOMETRY_SHADER);
         shaderProgram->add_shader(fpath, GL_FRAGMENT_SHADER);
         shaderProgram->link_shader();
         shaderPrograms.push_back(shaderProgram);
@@ -238,6 +242,8 @@ void render(){
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Calculate view, projection matrix
     glm::mat4 view = glm::lookAt(glm::vec3(cameraModel[3]), glm::vec3(0.0), camera.up);
@@ -252,7 +258,6 @@ void render(){
     // Render creeper
     creeper->update();
     creeper->render(shaderPrograms[shaderProgramIndex], view, projection);
-
 
     glm::vec3 eye = glm::vec3(cameraModel[3]);
     // Set uniform value for Blin-Phong shader and Gouraud shader
@@ -445,10 +450,10 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         creeper->rotateHead(5.0f);   // Turn head right
     }
     
-    if (key == GLFW_KEY_H && action == GLFW_PRESS) {
+    if (key == GLFW_KEY_H && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
         creeper->toggleScaleAndShimmer();
     }
-    
+
     if (key == GLFW_KEY_K && action == GLFW_PRESS) {
         creeper->toggleWalking();
     }

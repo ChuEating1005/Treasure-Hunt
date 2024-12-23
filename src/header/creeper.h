@@ -19,11 +19,12 @@ public:
             headRotationY = newRotation;
         }
     }
-    void toggleScaleAndShimmer() {
-        isScalingAndShimmering = !isScalingAndShimmering;
-    }
+    void toggleScaleAndShimmer();
     void toggleWalking() {
         isWalking = !isWalking;
+    }
+    void triggerExplosion() {
+        explodeFactor = 1.0f;
     }
 
 private:
@@ -49,7 +50,10 @@ private:
     float headRotationY;  // Add this line for head rotation
     bool isScalingAndShimmering;
     float scaleTime;
+    float explodeFactor;
     bool isWalking = false;
+    
+    bool isExploded; // Added to track explosion state
 };
 
 #endif
