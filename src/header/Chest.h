@@ -17,6 +17,9 @@ public:
     void open();
     void close();
     void update();
+    glm::vec3 getPosition() const {
+        return container.position;  // Return the container position as Chest's position
+    }
 private:
     struct ModelPart{
         glm::vec3 position;

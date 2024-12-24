@@ -12,8 +12,14 @@ Creeper::Creeper() :
     explodeFactor(0.0f),
     isExploded(false), // Initialize isExploded
     scaleRatio(8.0f),
-    walkingSpeed(0.1f),
-    walkingDirection(0.0f, 0.0f, 1.0f)  // Initially walking forward
+    walkingSpeed(0.08f),
+    walkingDirection(0.0f, 0.0f, 1.0f),  // Initially walking forward
+    isJumping(false),
+    verticalVelocity(0.0f),
+    initialJumpVelocity(2.0f),  // Increased from 1.0f
+    gravity(0.05f),
+    groundLevel(0.0f),
+    position(0.0f, 0.0f, -20.0f)  // Initialize position
 {}
 
 Creeper::~Creeper() {
@@ -27,12 +33,12 @@ Creeper::~Creeper() {
 
 void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     // Initialize base properties
-    glm::vec3 basePosition(0.0f, 0.0f, -10.0f);
+    position = glm::vec3(0.0f, 0.0f, 0.0f);  // Set initial position
     glm::vec3 baseScale(scaleRatio*1.0f, scaleRatio*1.0f, scaleRatio*1.0f);
     glm::vec3 baseRotation(0.0f, 180.0f, 0.0f);
 
     // Setup body
-    body.position = basePosition;
+    body.position = position;
     body.scale = baseScale;
     body.rotation = baseRotation;
     body.object = new Object(objDir + "creeper/body.obj");
@@ -41,7 +47,7 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     body.object->set_texture_parameters();
 
     // Setup head
-    head.position = basePosition;
+    head.position = position;
     head.scale = baseScale;
     head.rotation = baseRotation;
     head.object = new Object(objDir + "creeper/head.obj");
@@ -50,7 +56,7 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     head.object->set_texture_parameters();
 
     // Setup front legs
-    leftFrontLeg.position = basePosition + glm::vec3(0.0f, 0.4f, 0.0f);
+    leftFrontLeg.position = position + glm::vec3(0.0f, 0.4f, 0.0f);
     leftFrontLeg.scale = baseScale;
     leftFrontLeg.rotation = baseRotation;
     leftFrontLeg.object = new Object(objDir + "creeper/left_front_leg.obj");
@@ -58,7 +64,7 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     leftFrontLeg.object->load_texture(textureDir + "creeper.png");
     leftFrontLeg.object->set_texture_parameters();
 
-    rightFrontLeg.position = basePosition + glm::vec3(0.0f, 0.4f, 0.0f);
+    rightFrontLeg.position = position + glm::vec3(0.0f, 0.4f, 0.0f);
     rightFrontLeg.scale = baseScale;
     rightFrontLeg.rotation = baseRotation;
     rightFrontLeg.object = new Object(objDir + "creeper/right_front_leg.obj");
@@ -67,7 +73,7 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     rightFrontLeg.object->set_texture_parameters();
 
     // Setup back legs
-    leftBackLeg.position = basePosition + glm::vec3(0.0f, 0.4f, 0.0f);
+    leftBackLeg.position = position + glm::vec3(0.0f, 0.4f, 0.0f);
     leftBackLeg.scale = baseScale;
     leftBackLeg.rotation = baseRotation;
     leftBackLeg.object = new Object(objDir + "creeper/left_back_leg.obj");
@@ -75,7 +81,7 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     leftBackLeg.object->load_texture(textureDir + "creeper.png");
     leftBackLeg.object->set_texture_parameters();
 
-    rightBackLeg.position = basePosition + glm::vec3(0.0f, 0.4f, 0.0f);
+    rightBackLeg.position = position + glm::vec3(0.0f, 0.4f, 0.0f);
     rightBackLeg.scale = baseScale;
     rightBackLeg.rotation = baseRotation;
     rightBackLeg.object = new Object(objDir + "creeper/right_back_leg.obj");
@@ -106,6 +112,46 @@ void Creeper::toggleScaleAndShimmer() {
 
 // Modify update to handle scaling and transition to explosion
 void Creeper::update() {
+    // Handle jumping physics (independent of walking)
+    if (isJumping) {
+        // Apply gravity and update position
+        verticalVelocity -= gravity;
+        bodyHeight += verticalVelocity;
+        
+        // Continue moving in the jumping direction if we were walking when we jumped
+        if (isWalking && glm::length(walkingDirection) > 0.0f) {
+            position += walkingDirection * walkingSpeed * 1.2f;  // Slightly faster movement while jumping
+        }
+        
+        // Check if we've hit the ground level (which might be the top of the chest)
+        if (bodyHeight <= groundLevel) {
+            bodyHeight = groundLevel;
+            verticalVelocity = 0.0f;
+            isJumping = false;
+        }
+    }
+
+    // Handle walking (can happen simultaneously with jumping)
+    if (isWalking && glm::length(walkingDirection) > 0.0f) {
+        // Update position based on walking direction
+        position += walkingDirection * walkingSpeed;
+        
+        // Update leg animation
+        legRotationAngle += legRotationSpeed;
+        if (legRotationAngle >= 360.0f) {
+            legRotationAngle = 0.0f;
+        }
+    }
+
+    // Update all parts positions
+    glm::vec3 currentPos = position + glm::vec3(0.0f, bodyHeight, 0.0f);
+    body.position = currentPos;
+    head.position = currentPos;
+    leftFrontLeg.position = currentPos;
+    rightFrontLeg.position = currentPos;
+    leftBackLeg.position = currentPos;
+    rightBackLeg.position = currentPos;
+
     if (isExploded) {
         // Gradually increase the explosion factor
         explodeFactor += 0.05f;
@@ -113,6 +159,20 @@ void Creeper::update() {
             explodeFactor = 1.0f;
         }
     } else {
+        // Handle jumping physics
+        if (isJumping) {
+            // Apply gravity and update position
+            verticalVelocity -= gravity;
+            bodyHeight += verticalVelocity;
+            
+            // Check if we've hit the ground
+            if (bodyHeight <= groundLevel) {
+                bodyHeight = groundLevel;
+                verticalVelocity = 0.0f;
+                isJumping = false;
+            }
+        }
+
         if (isScalingAndShimmering) {
             scaleTime += 0.024f;
             float scaleFactor = 1.0f + 0.3f * scaleTime;
@@ -152,6 +212,18 @@ void Creeper::update() {
         }
 
         if (isWalking) {
+            // Update position based on walking direction
+            position += walkingDirection * walkingSpeed;
+            
+            // Update all parts positions
+            body.position = position;
+            head.position = position;
+            leftFrontLeg.position = position;
+            rightFrontLeg.position = position;
+            leftBackLeg.position = position;
+            rightBackLeg.position = position;
+
+            // Update leg animation
             legRotationAngle += legRotationSpeed;
             if (legRotationAngle >= 360.0f) {
                 legRotationAngle = 0.0f;
@@ -159,15 +231,6 @@ void Creeper::update() {
             
             // Update body height with a subtle bounce
             bodyHeight = 0.2f * sin(glm::radians(legRotationAngle * 2.0f));
-
-            // Add walking translation
-            glm::vec3 movement = walkingDirection * walkingSpeed;
-            body.position += movement;
-            head.position += movement;
-            leftFrontLeg.position += movement;
-            rightFrontLeg.position += movement;
-            leftBackLeg.position += movement;
-            rightBackLeg.position += movement;
         }
         
         // Calculate diagonal leg movements (opposite legs move together)

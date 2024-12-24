@@ -74,6 +74,39 @@ Chest* chest;
 Creeper* creeper;
 std::vector<Grass*> grasses;
 
+// Add after the declarations
+bool checkCollision(const glm::vec3& pos1, const glm::vec3& pos2, float minDistance = 10.0f) {
+    // Check horizontal distance first (x and z coordinates)
+    float horizontalDist = glm::length(
+        glm::vec2(pos1.x - pos2.x, pos1.z - pos2.z)
+    );
+    
+    if (horizontalDist >= minDistance) {
+        return false;
+    }
+
+    // Get height difference from the ground/chest
+    float heightDiff = creeper->getYPosition() - pos2.y;
+    
+    // If we're high enough above the chest, allow landing on it
+    if (heightDiff > 0.0f && heightDiff < 20.0f && creeper->getIsJumping()) {
+        creeper->setGroundLevel(pos2.y + 15.0f);  // Set ground level to chest height
+        return false;
+    }
+    
+    // If we're on the chest (already landed)
+    if (abs(creeper->getGroundLevel() - (pos2.y + 15.0f)) < 0.1f) {
+        return false;
+    }
+    
+    // If we're below the chest height and very close, block movement
+    if (heightDiff <= 0.0f && horizontalDist < minDistance/2) {
+        return true;
+    }
+
+    return false;
+}
+
 // model matrix
 int moveDir = -1;
 glm::mat4 cameraModel;
@@ -127,25 +160,25 @@ void model_setup(){
         creeper->setup(objDir, textureDir);
 
 
-        const int gridSize = 20;
-        const float spacing = 5.0f;  
-        const float startX = -((gridSize-1) * spacing) / 2.0f;
-        const float startZ = -((gridSize-1) * spacing) / 2.0f;
+        // const int gridSize = 20;
+        // const float spacing = 5.0f;  
+        // const float startX = -((gridSize-1) * spacing) / 2.0f;
+        // const float startZ = -((gridSize-1) * spacing) / 2.0f;
 
-        for(int i = 0; i < gridSize; i++) {
-            for(int j = 0; j < gridSize; j++) {
-                Grass* grass = new Grass();
-                if (!grass) throw std::runtime_error("Failed to create Grass object");
-                grass->setup(objDir, textureDir);
+        // for(int i = 0; i < gridSize; i++) {
+        //     for(int j = 0; j < gridSize; j++) {
+        //         Grass* grass = new Grass();
+        //         if (!grass) throw std::runtime_error("Failed to create Grass object");
+        //         grass->setup(objDir, textureDir);
                 
-                float xPos = startX + (i * spacing);
-                float zPos = startZ + (j * spacing);
-                grass->setPosition(glm::vec3(xPos, -7.0f, zPos));
-                grass->setRotation(glm::vec3(0.0f, 0.0f, 0.0f));  // No random rotation
+        //         float xPos = startX + (i * spacing);
+        //         float zPos = startZ + (j * spacing);
+        //         grass->setPosition(glm::vec3(xPos, -7.0f, zPos));
+        //         grass->setRotation(glm::vec3(0.0f, 0.0f, 0.0f));  // No random rotation
                 
-                grasses.push_back(grass);
-            }
-        }
+        //         grasses.push_back(grass);
+        //     }
+        // }
     } catch (const std::exception& e) {
         std::cerr << "Error in model_setup: " << e.what() << std::endl;
         throw;
@@ -200,14 +233,17 @@ void cubemap_setup(){
     // setup texture for cubemap
     std::vector<std::string> faces
     {
-        cubemapDir + "right.jpg",
-        cubemapDir + "left.jpg",
-        cubemapDir + "top.jpg",
-        cubemapDir + "bottom.jpg",
-        cubemapDir + "front.jpg",
-        cubemapDir + "back.jpg"
+        cubemapDir + "right.png",
+        cubemapDir + "left.png",
+        cubemapDir + "top.png",
+        cubemapDir + "bottom.png",
+        cubemapDir + "front.png",
+        cubemapDir + "back.png"
     };
-    cubemapTexture = loadCubemap(faces);   
+    cubemapTexture = loadCubemap(faces);
+    if (cubemapTexture == 0) {
+        throw std::runtime_error("Failed to load cubemap texture");
+    }
 
     // setup shader for cubemap
     std::string vpath = shaderDir + "cubemap.vert";
@@ -227,7 +263,7 @@ void cubemap_setup(){
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glBindVertexArray(0);
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE0);  // Use texture unit 0 instead of 1
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 }
 
@@ -259,6 +295,37 @@ void update(){
     cameraModel = glm::mat4(1.0f);
     cameraModel = glm::rotate(cameraModel, glm::radians(camera.rotationY), camera.up);
     cameraModel = glm::translate(cameraModel, camera.position);
+
+    // Check collisions before updating creeper position
+    glm::vec3 nextCreeperPos = creeper->getNextPosition();
+    bool collisionDetected = false;
+    
+    // Check collision with Steve
+    if (checkCollision(nextCreeperPos, steve->getPosition())) {
+        collisionDetected = true;
+    }
+    
+    // Check collision with Chest
+    if (checkCollision(nextCreeperPos, chest->getPosition())) {
+        if (!creeper->getIsJumping()) {
+            collisionDetected = true;
+        }
+    } else {
+        // Only reset ground level if we're not on top of the chest
+        if (abs(creeper->getGroundLevel() - (chest->getPosition().y + 15.0f)) > 0.1f) {
+            creeper->setGroundLevel(0.0f);
+        }
+    }
+    
+    if (!collisionDetected) {
+        creeper->update();
+    } else {
+        creeper->stopMoving();
+    }
+
+    // Update other objects
+    steve->update();
+    chest->update();
 }
 
 void render(){
@@ -281,10 +348,10 @@ void render(){
     creeper->update();
     creeper->render(shaderPrograms[shaderProgramIndex], view, projection);
 
-    for(Grass* grass : grasses) {
-        grass->update();
-        grass->render(shaderPrograms[shaderProgramIndex], view, projection);
-    }
+    // for(Grass* grass : grasses) {
+    //     grass->update();
+    //     grass->render(shaderPrograms[shaderProgramIndex], view, projection);
+    // }
 
 
 
@@ -342,8 +409,9 @@ void render(){
     // Draw skybox
     glDepthFunc(GL_LEQUAL);  // Change depth function so depth test passes when values are equal to depth buffer's content
     glBindVertexArray(cubemapVAO);
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE0);  // Use texture unit 0
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+    cubemapShader->set_uniform_value("skybox", 0);  // Use texture unit 0
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
     glDepthFunc(GL_LESS); // Set depth function back to default
@@ -503,8 +571,18 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         creeper->toggleScaleAndShimmer();
     }
 
-    if (key == GLFW_KEY_K && action == GLFW_PRESS) {
-        creeper->toggleWalking();
+    // Change K key handling
+    if (key == GLFW_KEY_K) {
+        if (action == GLFW_PRESS) {
+            creeper->startMovingForward();  // Start moving when pressed
+        }
+        else if (action == GLFW_RELEASE) {
+            creeper->stopMoving();  // Stop moving when released
+        }
+    }
+
+    if (key == GLFW_KEY_I && action == GLFW_PRESS) {
+        creeper->jump();  // Can now be triggered while walking
     }
 
 }
@@ -530,22 +608,38 @@ unsigned int loadCubemap(vector<std::string>& faces){
         unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
         if (data)
         {
+            GLenum format;
+            if (nrChannels == 1)
+                format = GL_RED;
+            else if (nrChannels == 3)
+                format = GL_RGB;
+            else if (nrChannels == 4)
+                format = GL_RGBA;
+            
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
-                         0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
-            );
+                        0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+            
+            GLenum error = glGetError();
+            if (error != GL_NO_ERROR) {
+                std::cout << "OpenGL Error loading cubemap face " << i << ": " << error << std::endl;
+            }
+            
             stbi_image_free(data);
         }
         else
         {
-            std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
+            std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
             stbi_image_free(data);
+            return 0;
         }
     }
+
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
     return texture;
 }

@@ -21,7 +21,7 @@ Chest::~Chest() {
 
 void Chest::setup(const string& objDir, const string& textureDir){
     
-    container.position = glm::vec3(0.0f, 0.0f, 10.0f);
+    container.position = glm::vec3(0.0f, 0.0f, 100.0f);
     container.scale = glm::vec3(scaleRatio * 1.0f, scaleRatio * 1.0f, scaleRatio * 1.0f);
     container.rotation = glm::vec3(0.0f, 90.0f, 0.0f);
     container.object = new Object(objDir + "chest/container.obj");
@@ -51,11 +51,6 @@ void Chest::render(shader_program_t* shader, const glm::mat4& view, const glm::m
     shader->set_uniform_value("view", view);
     shader->set_uniform_value("projection", projection);
 
-    // Set material properties
-    shader->set_uniform_value("isShimmering", false);
-    shader->set_uniform_value("explodeFactor", 0.0f);
-    shader->set_uniform_value("whiteFlash", false);
-
     shader->set_uniform_value("model", container.model);
     container.object->render();
     shader->set_uniform_value("model", lid.model);
@@ -80,7 +75,9 @@ void Chest::update() {
             // 更新箱子蓋的模型矩陣
             glm::vec3 lidHingeOffset = scaleRatio * glm::vec3(-0.9f, 1.1f, 0.0f);
             lid.model = glm::mat4(1.0f);
-            lid.model = glm::translate(lid.model, lid.position + lidHingeOffset);
+            lid.model = glm::translate(lid.model, lid.position);
+            lid.model = glm::rotate(lid.model, glm::radians(lid.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+            lid.model = glm::translate(lid.model, lidHingeOffset);
             lid.model = glm::rotate(lid.model, glm::radians(lid.rotation.x), glm::vec3(0.0f, 0.0f, 1.0f));
             lid.model = glm::translate(lid.model, -lidHingeOffset);
             lid.model = glm::scale(lid.model, lid.scale);
@@ -100,7 +97,9 @@ void Chest::update() {
             // 更新箱子蓋的模型矩陣
             glm::vec3 lidHingeOffset = scaleRatio * glm::vec3(-0.9f, 1.1f, 0.0f);
             lid.model = glm::mat4(1.0f);
-            lid.model = glm::translate(lid.model, lid.position + lidHingeOffset);
+            lid.model = glm::translate(lid.model, lid.position);
+            lid.model = glm::rotate(lid.model, glm::radians(lid.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+            lid.model = glm::translate(lid.model, lidHingeOffset);
             lid.model = glm::rotate(lid.model, glm::radians(lid.rotation.x), glm::vec3(0.0f, 0.0f, 1.0f));
             lid.model = glm::translate(lid.model, -lidHingeOffset);
             lid.model = glm::scale(lid.model, lid.scale);

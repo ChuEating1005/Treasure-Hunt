@@ -16,6 +16,11 @@ public:
     void render(shader_program_t* shader, const glm::mat4& view, const glm::mat4& projection);
     void walk();
     void update();
+    
+    glm::vec3 getPosition() const {
+        return body.position;  // Return the body position as Steve's position
+    }
+
 private:
     struct ModelPart{
         glm::vec3 position;
