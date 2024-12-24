@@ -26,7 +26,7 @@ void Chest::setup(const string& objDir, const string& textureDir){
     container.rotation = glm::vec3(0.0f, 90.0f, 0.0f);
     container.object = new Object(objDir + "chest/container.obj");
     container.object->load_to_buffer();
-    container.object->load_texture(textureDir + "chest.png");
+    container.object->load_texture(textureDir + "chest1.png");
     container.model = glm::mat4(1.0f);
     container.model = glm::translate(container.model, container.position);
     container.model = glm::rotate(container.model, glm::radians(container.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -37,7 +37,7 @@ void Chest::setup(const string& objDir, const string& textureDir){
     lid.rotation = container.rotation;
     lid.object = new Object(objDir + "chest/lid.obj");
     lid.object->load_to_buffer();
-    lid.object->load_texture(textureDir + "chest.png");
+    lid.object->load_texture(textureDir + "chest1.png");
     lid.model = glm::mat4(1.0f);
     lid.model = glm::translate(lid.model, lid.position);
     lid.model = glm::rotate(lid.model, glm::radians(lid.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
