@@ -1,4 +1,7 @@
-float cubemapVertices[] = {
+#ifndef CUBE_H
+#define CUBE_H
+
+static float cubemapVertices[] = {
     -1.0f,  1.0f, -1.0f,
     -1.0f, -1.0f, -1.0f,
     1.0f, -1.0f, -1.0f,
@@ -41,3 +44,5 @@ float cubemapVertices[] = {
     -1.0f, -1.0f,  1.0f,
     1.0f, -1.0f,  1.0f
 };
+
+#endif

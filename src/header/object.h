@@ -24,7 +24,7 @@ enum class FACETYPE {
 class Object {
 public:
 
-    Object(const string &obj_file) {
+    Object(const string &obj_file, bool useMTL = true) {
         std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
         vector<glm::vec3> tmp_vertices;
         vector<glm::vec3> tmp_normals;

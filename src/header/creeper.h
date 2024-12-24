@@ -53,6 +53,8 @@ private:
     bool isWalking = false;
     bool isExploded; 
     float scaleRatio;
+    float walkingSpeed;
+    glm::vec3 walkingDirection;
 };
 
 #endif

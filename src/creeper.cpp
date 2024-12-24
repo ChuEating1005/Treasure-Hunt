@@ -11,7 +11,9 @@ Creeper::Creeper() :
     scaleTime(0.0f),
     explodeFactor(0.0f),
     isExploded(false), // Initialize isExploded
-    scaleRatio(8.0f)
+    scaleRatio(8.0f),
+    walkingSpeed(0.1f),
+    walkingDirection(0.0f, 0.0f, -1.0f)  // Initially walking forward
 {}
 
 Creeper::~Creeper() {
@@ -157,6 +159,15 @@ void Creeper::update() {
             
             // Update body height with a subtle bounce
             bodyHeight = 0.2f * sin(glm::radians(legRotationAngle * 2.0f));
+
+            // Add walking translation
+            glm::vec3 movement = walkingDirection * walkingSpeed;
+            body.position += movement;
+            head.position += movement;
+            leftFrontLeg.position += movement;
+            rightFrontLeg.position += movement;
+            leftBackLeg.position += movement;
+            rightBackLeg.position += movement;
         }
         
         // Calculate diagonal leg movements (opposite legs move together)

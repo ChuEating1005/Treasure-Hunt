@@ -10,6 +10,10 @@
 #include "header/Steve.h"
 #include "header/Chest.h"
 #include "header/creeper.h"
+#include "header/Ground.h"
+#include "header/Grass.h"
+#define STB_IMAGE_IMPLEMENTATION
+
 
 void framebufferSizeCallback(GLFWwindow *window, int width, int height);
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -69,11 +73,12 @@ camera_t camera;
 Steve* steve;
 Chest* chest;
 Creeper* creeper;
+Ground* ground;
+Grass* grass;
 
 // model matrix
 int moveDir = -1;
 glm::mat4 cameraModel;
-
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -102,26 +107,39 @@ void material_setup(){
 //////////////////////////////////////////////////////////////////////////
 
 void model_setup(){
+    try {
+        #if defined(__linux__) || defined(__APPLE__)
+            std::string objDir = "../../src/asset/obj/";
+            std::string textureDir = "../../src/asset/texture/";
+        #else
+            std::string objDir = "..\\..\\src\\asset\\obj\\";
+            std::string textureDir = "..\\..\\src\\asset\\texture\\";
+        #endif
 
-// Load the object and texture for each model here 
+        steve = new Steve();
+        if (!steve) throw std::runtime_error("Failed to create Steve object");
+        steve->setup(objDir, textureDir);
 
-#if defined(__linux__) || defined(__APPLE__)
-    std::string objDir = "../../src/asset/obj/";
-    std::string textureDir = "../../src/asset/texture/";
-#else
-    std::string objDir = "..\\..\\src\\asset\\obj\\";
-    std::string textureDir = "..\\..\\src\\asset\\texture\\";
-#endif
-    steve = new Steve;
-    steve->setup(objDir, textureDir);
+        chest = new Chest();
+        if (!chest) throw std::runtime_error("Failed to create Chest object");
+        chest->setup(objDir, textureDir);
 
-    chest = new Chest;
-    chest->setup(objDir, textureDir);
+        creeper = new Creeper();
+        if (!creeper) throw std::runtime_error("Failed to create Creeper object");
+        creeper->setup(objDir, textureDir);
 
-    creeper = new Creeper();
-    creeper->setup(objDir, textureDir);
+        ground = new Ground();
+        if (!ground) throw std::runtime_error("Failed to create Ground object");
+        ground->setup(textureDir);
+
+    //     grass = new Grass();
+    //     if (!grass) throw std::runtime_error("Failed to create Grass object");
+    //     grass->setup(objDir, textureDir);
+    } catch (const std::exception& e) {
+        std::cerr << "Error in model_setup: " << e.what() << std::endl;
+        throw;
+    }
 }
-
 
 void shader_setup(){
 
@@ -203,32 +221,26 @@ void cubemap_setup(){
 }
 
 void setup(){
+    try {
+        // Initialize in proper order
+        light_setup();
+        camera_setup();
+        shader_setup();  // Shaders before models that use them
+        model_setup();
+        cubemap_setup();
+        material_setup();
 
-    // Initialize shader model camera light material
-    light_setup();
-    model_setup();
-    shader_setup();
-    camera_setup();
-    cubemap_setup();
-    material_setup();
+        // Enable OpenGL features
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
+        glEnable(GL_CULL_FACE);
+        glFrontFace(GL_CCW);
+        glCullFace(GL_BACK);
 
-    // Enable depth test, face culling ...
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CCW);
-    glCullFace(GL_BACK);
-
-    // Debug: enable for debugging
-    // glEnable(GL_DEBUG_OUTPUT);
-    // glDebugMessageCallback([](  GLenum source, GLenum type, GLuint id, GLenum severity, 
-    //                             GLsizei length, const GLchar* message, const void* userParam) {
-
-    // std::cerr << "GL CALLBACK: " << (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "") 
-    //           << "type = " << type 
-    //           << ", severity = " << severity 
-    //           << ", message = " << message << std::endl;
-    // }, nullptr);
+    } catch (const std::exception& e) {
+        std::cerr << "Setup failed: " << e.what() << std::endl;
+        throw;
+    }
 }
 
 void update(){
@@ -257,6 +269,11 @@ void render(){
 
     creeper->update();
     creeper->render(shaderPrograms[shaderProgramIndex], view, projection);
+
+    // grass->update();
+    // grass->render(shaderPrograms[shaderProgramIndex], view, projection);
+
+
 
     glm::vec3 eye = glm::vec3(cameraModel[3]);
     // Set uniform value for Blin-Phong shader and Gouraud shader
@@ -319,83 +336,104 @@ void render(){
     glDepthFunc(GL_LESS); // Set depth function back to default
     
     cubemapShader->release();
+
+    // Render ground
+    ground->update();
+    ground->render(shaderPrograms[shaderProgramIndex], view, projection);
 }
 
 
 int main() {
-    // 關閉 iostream 的同步，提高性能
-    std::ios_base::sync_with_stdio(false);
-    
-    std::cout << "Starting program..." << std::endl;
-    std::cout.flush();  // 強制輸出
-    
-    // glfw: initialize and configure
-    if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
-        std::cerr.flush();  // 強制輸出錯誤訊息
-        return -1;
-    }
-    std::cout << "GLFW initialized" << std::endl;
-    std::cout.flush();
-    
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    // glfw window creation
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "HW4-111550093", NULL, NULL);
-    if (window == NULL) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    std::cout << "Window created" << std::endl;
-    
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-    glfwSetKeyCallback(window, keyCallback);
-    glfwSwapInterval(1);
-
-    // glad: load all OpenGL function pointers
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-    std::cout << "GLAD initialized" << std::endl;
-
     try {
-        std::cout << "Starting setup..." << std::endl;
+        // 關閉 iostream 的同步，提高性能
+        std::ios_base::sync_with_stdio(false);
+        
+        std::cout << "Starting program..." << std::endl;
+        std::cout.flush();  // 強制輸出
+        
+        // glfw: initialize and configure
+        if (!glfwInit()) {
+            std::cerr << "Failed to initialize GLFW" << std::endl;
+            std::cerr.flush();  // 強制輸出錯誤訊息
+            return -1;
+        }
+        std::cout << "GLFW initialized" << std::endl;
         std::cout.flush();
-        setup();
-        std::cout << "Setup completed" << std::endl;
-        std::cout.flush();
+        
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    #ifdef __APPLE__
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    #endif
+
+        // glfw window creation
+        GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "HW4-111550093", NULL, NULL);
+        if (window == NULL) {
+            std::cerr << "Failed to create GLFW window" << std::endl;
+            glfwTerminate();
+            return -1;
+        }
+        std::cout << "Window created" << std::endl;
+        
+        glfwMakeContextCurrent(window);
+        glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+        glfwSetKeyCallback(window, keyCallback);
+        glfwSwapInterval(1);
+
+        // glad: load all OpenGL function pointers
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+            throw std::runtime_error("Failed to initialize GLAD");
+        }
+        std::cout << "GLAD initialized" << std::endl;
+
+        try {
+            std::cout << "Starting setup..." << std::endl;
+            std::cout.flush();
+            setup();
+            std::cout << "Setup completed" << std::endl;
+            std::cout.flush();
+        } catch (const std::exception& e) {
+            std::cerr << "Setup failed: " << e.what() << std::endl;
+            std::cerr.flush();
+            glfwTerminate();
+            return -1;
+        }
+
+        // Render loop
+        while (!glfwWindowShouldClose(window)) {
+            try {
+                update();
+                render();
+                glfwSwapBuffers(window);
+                glfwPollEvents();
+            } catch (const std::exception& e) {
+                std::cerr << "Render loop error: " << e.what() << std::endl;
+                break;
+            }
+        }
+
+        // Cleanup
+        delete steve;
+        delete chest;
+        delete creeper;
+        delete ground;
+        delete grass;
+        
+        for (auto shader : shaderPrograms) {
+            delete shader;
+        }
+        delete cubemapShader;
+
+        glfwTerminate();
+        return 0;
+
     } catch (const std::exception& e) {
-        std::cerr << "Setup failed: " << e.what() << std::endl;
-        std::cerr.flush();
+        std::cerr << "Fatal error: " << e.what() << std::endl;
         glfwTerminate();
         return -1;
     }
-
-    // Render loop
-    while (!glfwWindowShouldClose(window)) {
-        try {
-            update();
-            render();
-        } catch (const std::exception& e) {
-            std::cerr << "Render loop error: " << e.what() << std::endl;
-            break;
-        }
-        
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-
-    glfwTerminate();
-    return 0;
 }
 
 // Add key callback
