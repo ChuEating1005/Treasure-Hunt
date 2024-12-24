@@ -16,6 +16,16 @@ public:
     void render(shader_program_t* shader, const glm::mat4& view, const glm::mat4& projection);
     void walk();
     void update();
+    void moveForward();
+    void moveBackward();
+    void moveLeft();
+    void moveRight();
+    void stopMoving();
+    void rotateHead(float xoffset, float yoffset);
+    glm::vec3 getEyePosition() const;
+    glm::vec3 getViewDirection() const;
+    float getHeadRotationX() const { return headRotationX; }
+    float getHeadRotationY() const { return headRotationY; }
 private:
     struct ModelPart{
         glm::vec3 position;
@@ -32,9 +42,19 @@ private:
     ModelPart rightLeg;
 
     float animationTime;
-    float walkSpeed;
+    float moveSpeed;
+    float swingSpeed;
     bool isWalking;
     const float PI = 3.14159265359f;
+    glm::vec3 direction;
+    float headRotationX;
+    float headRotationY;
+    const float HEAD_ROTATION_SENSITIVITY = 0.1f;
+    
+    // Offset of each part
+    const glm::vec3 headOffset = glm::vec3(0.0f, 6.0f, 0.0f);
+    const glm::vec3 lefthandOffset = glm::vec3(-2.44f, 4.88f, 0.0f);
+    const glm::vec3 righthandOffset = glm::vec3(2.44f, 4.88f, 0.0f);
 };
 
 #endif // STEVE_H

@@ -9,8 +9,12 @@
 Steve::Steve() {
     // Initialize animation variables
     animationTime = 0.0f;
-    walkSpeed = 0.1f;
+    swingSpeed = 0.1f;
+    moveSpeed = 0.5f;
     isWalking = false;
+    direction = glm::vec3(0.0f, 0.0f, 1.0f);  // 預設朝向 -z 方向
+    headRotationX = 0.0f;
+    headRotationY = 0.0f;
 }
 
 Steve::~Steve() {
@@ -129,7 +133,21 @@ void Steve::render(shader_program_t* shader, const glm::mat4& view, const glm::m
 void Steve::update() {
     if (!isWalking) return;
     
-    animationTime += walkSpeed;
+    animationTime += swingSpeed;
+
+    // Update body model matrix
+    body.model = glm::mat4(1.0f);
+    body.model = glm::translate(body.model, body.position);
+    body.model = glm::rotate(body.model, body.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+    body.model = glm::scale(body.model, body.scale);
+    
+    // Update head model matrix with rotation
+    head.model = glm::mat4(1.0f);
+    head.model = glm::translate(head.model, head.position + headOffset);
+    head.model = glm::rotate(head.model, glm::radians(headRotationY), glm::vec3(0.0f, 1.0f, 0.0f));
+    head.model = glm::rotate(head.model, glm::radians(headRotationX), glm::vec3(1.0f, 0.0f, 0.0f));
+    head.model = glm::translate(head.model, -headOffset);
+    head.model = glm::scale(head.model, head.scale);
     
     // Arm swing
     float armSwing = sin(animationTime) * 45.0f; // 45 degree swing angle
@@ -137,8 +155,7 @@ void Steve::update() {
     rightHand.rotation.x = -armSwing;
     
     // Update arm model matrix
-    glm::vec3 lefthandOffset = glm::vec3(-2.44f, 4.88f, 0.0f);
-    glm::vec3 righthandOffset = glm::vec3(2.44f, 4.88f, 0.0f);
+    
     leftHand.model = glm::mat4(1.0f);
     leftHand.model = glm::translate(leftHand.model, leftHand.position + lefthandOffset);
     leftHand.model = glm::rotate(leftHand.model, glm::radians(leftHand.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -170,4 +187,85 @@ void Steve::update() {
 
 void Steve::walk() {
     isWalking = !isWalking;
+}
+
+void Steve::moveForward() {
+    // 更新所有部件的位置
+    glm::vec3 movement = direction * moveSpeed;
+    body.position += movement;
+    head.position += movement;
+    leftHand.position += movement;
+    rightHand.position += movement;
+    leftLeg.position += movement;
+    rightLeg.position += movement;
+    
+    isWalking = true;  // 啟動走路動畫
+}
+
+void Steve::moveBackward() {
+    glm::vec3 movement = -direction * moveSpeed;
+    body.position += movement;
+    head.position += movement;
+    leftHand.position += movement;
+    rightHand.position += movement;
+    leftLeg.position += movement;
+    rightLeg.position += movement;
+    
+    isWalking = true;
+}
+
+void Steve::moveLeft() {
+    glm::vec3 movement = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), direction)) * moveSpeed;
+    body.position += movement;
+    head.position += movement;
+    leftHand.position += movement;
+    rightHand.position += movement;
+    leftLeg.position += movement;
+    rightLeg.position += movement;
+    
+    isWalking = true;
+}
+
+void Steve::moveRight() {
+    glm::vec3 movement = glm::normalize(glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+    body.position += movement;
+    head.position += movement;
+    leftHand.position += movement;
+    rightHand.position += movement;
+    leftLeg.position += movement;
+    rightLeg.position += movement;
+    
+    isWalking = true;
+}
+
+void Steve::stopMoving() {
+    isWalking = false;
+}
+
+void Steve::rotateHead(float xoffset, float yoffset) {
+    headRotationY += xoffset * HEAD_ROTATION_SENSITIVITY;
+    headRotationX += yoffset * HEAD_ROTATION_SENSITIVITY;
+    
+    // 限制頭部上下旋轉的角度範圍
+    if(abs(headRotationX) > 45.0f)
+        headRotationX = 45.0f * (headRotationX / abs(headRotationX));
+    if(abs(headRotationY) > 45.0f)
+        headRotationY = 45.0f * (headRotationY / abs(headRotationY));
+    isWalking = true;
+}
+
+glm::vec3 Steve::getEyePosition() const {
+    // 眼睛位置在頭部上方略前方
+    return head.position + glm::vec3(0.0f, 0.5f, 0.0f) + headOffset;
+}
+
+glm::vec3 Steve::getViewDirection() const {
+    // 計算視線方向向量
+    glm::vec3 direction;
+    float adjustedRotationY = headRotationY + 90.0f;  // 對-y軸旋轉90度
+    direction.x = cos(glm::radians(adjustedRotationY)) * cos(glm::radians(headRotationX));
+    direction.y = sin(glm::radians(headRotationX));
+    direction.z = sin(glm::radians(adjustedRotationY)) * cos(glm::radians(headRotationX));
+    
+    return glm::normalize(direction);
 }

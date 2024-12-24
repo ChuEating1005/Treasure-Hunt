@@ -17,6 +17,7 @@
 
 void framebufferSizeCallback(GLFWwindow *window, int width, int height);
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+void cursorCallback(GLFWwindow* window, double xpos, double ypos);
 unsigned int loadCubemap(std::vector<string> &mFileName);
 
 struct material_t{
@@ -45,11 +46,13 @@ struct camera_t{
     glm::vec3 position;
     glm::vec3 up;
     float rotationY;
+    bool firstPersonView;
 
     camera_t() :
         position(glm::vec3(0.0f, 0.0f, 5.0f)),  // 預設相機位置
         up(glm::vec3(0.0f, 1.0f, 0.0f)),        // 向上向量
-        rotationY(0.0f)                          // 無旋轉
+        rotationY(0.0f),                          // 無旋轉
+        firstPersonView(false)
     {}
 };
 
@@ -80,6 +83,9 @@ Grass* grass;
 int moveDir = -1;
 glm::mat4 cameraModel;
 
+double lastX = SCR_WIDTH/2.0f;
+double lastY = SCR_HEIGHT/2.0f;
+bool firstMouse = true;
 
 //////////////////////////////////////////////////////////////////////////
 // Parameter setup, 
@@ -89,6 +95,7 @@ void camera_setup(){
     camera.position = glm::vec3(0.0, 10.0, 100.0);
     camera.up = glm::vec3(0.0, 1.0, 0.0);
     camera.rotationY = 0;
+    camera.firstPersonView = false;
 }
 
 void light_setup(){
@@ -243,22 +250,53 @@ void setup(){
     }
 }
 
-void update(){
-    camera.rotationY = (camera.rotationY > 360.0) ? 0.0 : camera.rotationY;
+void updateCamera() {
+    glm::vec3 eyePos = steve->getEyePosition();
+    glm::vec3 viewDir = steve->getViewDirection();
+    
+    if (camera.firstPersonView) {
+        // 第一人稱視角 - 相機位於史蒂夫眼睛位置
+        camera.position = eyePos;
+        camera.rotationY = glm::degrees(atan2(viewDir.z, viewDir.x));
+    } else {
+        // 第三人稱視角 - 相機在史蒂夫身後
+        camera.position = eyePos - (viewDir * 10.0f) + glm::vec3(0.0f, 2.0f, 0.0f);
+        camera.position += glm::vec3(0.0f, 10.0f, -30.0f);
+        camera.rotationY = glm::degrees(atan2(viewDir.z, viewDir.x));
+    }
+
+    // 更新相機模型矩陣
+    camera.rotationY = (camera.rotationY > 360.0) ? camera.rotationY - 360.0 : camera.rotationY;
     cameraModel = glm::mat4(1.0f);
-    cameraModel = glm::rotate(cameraModel, glm::radians(camera.rotationY), camera.up);
     cameraModel = glm::translate(cameraModel, camera.position);
+    cameraModel = glm::rotate(cameraModel, glm::radians(camera.rotationY - 90.0f), camera.up);
+    ;
 }
 
 void render(){
-
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Calculate view, projection matrix
-    glm::mat4 view = glm::lookAt(glm::vec3(cameraModel[3]), glm::vec3(0.0), camera.up);
+    glm::mat4 view;
+    if (camera.firstPersonView) {
+        // 第一人稱視角 - 看向視線方向
+        view = glm::lookAt(
+            glm::vec3(cameraModel[3]),                          // 相機位置
+            glm::vec3(cameraModel[3]) + steve->getViewDirection(), // 看向視線方向的點
+            camera.up                                 // 上方向
+        );
+    } else {
+        // 第三人稱視角 - 看向史蒂夫
+        view = glm::lookAt(
+            glm::vec3(cameraModel[3]),              // 相機位置
+            steve->getEyePosition(),      // 看向史蒂夫
+            camera.up                     // 上方向
+        );
+    }
+    
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
     
     steve->update();
@@ -343,6 +381,7 @@ void render(){
 }
 
 
+
 int main() {
     try {
         // 關閉 iostream 的同步，提高性能
@@ -401,10 +440,16 @@ int main() {
             return -1;
         }
 
+        // 註冊滑鼠回調
+        glfwSetCursorPosCallback(window, cursorCallback);
+        
+        // 捕捉滑鼠
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
         // Render loop
         while (!glfwWindowShouldClose(window)) {
             try {
-                update();
+                updateCamera();
                 render();
                 glfwSwapBuffers(window);
                 glfwPollEvents();
@@ -436,6 +481,22 @@ int main() {
     }
 }
 
+void cursorCallback(GLFWwindow* window, double xpos, double ypos) {
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+  
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // 反轉 Y 座標
+    
+    lastX = xpos;
+    lastY = ypos;
+
+    steve->rotateHead(xoffset, yoffset);
+}
+
 // Add key callback
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
 
@@ -464,16 +525,19 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
     // camera movement
     float cameraSpeed = 0.5f;
     if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS))
-        camera.position.z -= 10.0;
-    if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS))
-        camera.position.z += 10.0;
-    if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
-        camera.rotationY -= 10.0;
-    if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS))
-        camera.rotationY += 10.0;
-    
-    if (key == GLFW_KEY_SPACE && (action == GLFW_REPEAT || action == GLFW_PRESS))
-        steve->walk();
+        // camera.position.z -= 10.0;
+        steve->moveForward();
+    else if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS))
+        // camera.position.z += 10.0;
+        steve->moveBackward();
+    else if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
+        // camera.rotationY -= 10.0;
+        steve->moveLeft();
+    else if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS))
+        // camera.rotationY += 10.0;
+        steve->moveRight();
+    else 
+        steve->stopMoving();
     
     if (key == GLFW_KEY_O && (action == GLFW_REPEAT || action == GLFW_PRESS))
         chest->open();
@@ -495,6 +559,11 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         creeper->toggleWalking();
     }
 
+    // 視角切換 (按V鍵)
+    if (key == GLFW_KEY_V && action == GLFW_PRESS) {
+        camera.firstPersonView = !camera.firstPersonView;
+        std::cout << (camera.firstPersonView ? "First Person View" : "Third Person View") << std::endl;
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
