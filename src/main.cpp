@@ -10,7 +10,6 @@
 #include "header/Steve.h"
 #include "header/Chest.h"
 #include "header/creeper.h"
-#include "header/Ground.h"
 #include "header/Grass.h"
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -73,8 +72,7 @@ camera_t camera;
 Steve* steve;
 Chest* chest;
 Creeper* creeper;
-Ground* ground;
-Grass* grass;
+std::vector<Grass*> grasses;
 
 // model matrix
 int moveDir = -1;
@@ -128,13 +126,26 @@ void model_setup(){
         if (!creeper) throw std::runtime_error("Failed to create Creeper object");
         creeper->setup(objDir, textureDir);
 
-        ground = new Ground();
-        if (!ground) throw std::runtime_error("Failed to create Ground object");
-        ground->setup(textureDir);
 
-    //     grass = new Grass();
-    //     if (!grass) throw std::runtime_error("Failed to create Grass object");
-    //     grass->setup(objDir, textureDir);
+        const int gridSize = 20;
+        const float spacing = 5.0f;  
+        const float startX = -((gridSize-1) * spacing) / 2.0f;
+        const float startZ = -((gridSize-1) * spacing) / 2.0f;
+
+        for(int i = 0; i < gridSize; i++) {
+            for(int j = 0; j < gridSize; j++) {
+                Grass* grass = new Grass();
+                if (!grass) throw std::runtime_error("Failed to create Grass object");
+                grass->setup(objDir, textureDir);
+                
+                float xPos = startX + (i * spacing);
+                float zPos = startZ + (j * spacing);
+                grass->setPosition(glm::vec3(xPos, -7.0f, zPos));
+                grass->setRotation(glm::vec3(0.0f, 0.0f, 0.0f));  // No random rotation
+                
+                grasses.push_back(grass);
+            }
+        }
     } catch (const std::exception& e) {
         std::cerr << "Error in model_setup: " << e.what() << std::endl;
         throw;
@@ -270,8 +281,10 @@ void render(){
     creeper->update();
     creeper->render(shaderPrograms[shaderProgramIndex], view, projection);
 
-    // grass->update();
-    // grass->render(shaderPrograms[shaderProgramIndex], view, projection);
+    for(Grass* grass : grasses) {
+        grass->update();
+        grass->render(shaderPrograms[shaderProgramIndex], view, projection);
+    }
 
 
 
@@ -337,9 +350,6 @@ void render(){
     
     cubemapShader->release();
 
-    // Render ground
-    ground->update();
-    ground->render(shaderPrograms[shaderProgramIndex], view, projection);
 }
 
 
@@ -418,8 +428,10 @@ int main() {
         delete steve;
         delete chest;
         delete creeper;
-        delete ground;
-        delete grass;
+        for(Grass* grass : grasses) {
+            delete grass;
+        }
+        grasses.clear();
         
         for (auto shader : shaderPrograms) {
             delete shader;

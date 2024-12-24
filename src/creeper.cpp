@@ -13,7 +13,7 @@ Creeper::Creeper() :
     isExploded(false), // Initialize isExploded
     scaleRatio(8.0f),
     walkingSpeed(0.1f),
-    walkingDirection(0.0f, 0.0f, -1.0f)  // Initially walking forward
+    walkingDirection(0.0f, 0.0f, 1.0f)  // Initially walking forward
 {}
 
 Creeper::~Creeper() {
@@ -29,7 +29,7 @@ void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     // Initialize base properties
     glm::vec3 basePosition(0.0f, 0.0f, -10.0f);
     glm::vec3 baseScale(scaleRatio*1.0f, scaleRatio*1.0f, scaleRatio*1.0f);
-    glm::vec3 baseRotation(0.0f, 0.0f, 0.0f);
+    glm::vec3 baseRotation(0.0f, 180.0f, 0.0f);
 
     // Setup body
     body.position = basePosition;
@@ -185,26 +185,20 @@ void Creeper::update() {
         // Apply body bounce and rotation
         body.model = glm::mat4(1.0f);
         body.model = glm::translate(body.model, body.position + glm::vec3(0.0f, bodyHeight, 0.0f));
-        body.model = glm::rotate(body.model, body.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-        body.model = glm::rotate(body.model, body.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-        body.model = glm::rotate(body.model, body.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+        body.model = glm::rotate(body.model, glm::radians(body.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
         body.model = glm::scale(body.model, body.scale);
         
         // Apply head bob and rotation
         head.model = glm::mat4(1.0f);
         head.model = glm::translate(head.model, head.position + glm::vec3(0.0f, bodyHeight, 0.0f));
-        head.model = glm::rotate(head.model, head.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)); // Apply body rotation
-        head.model = glm::rotate(head.model, head.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)); // Apply body rotation
-        head.model = glm::rotate(head.model, head.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+        head.model = glm::rotate(head.model, glm::radians(head.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)); // Apply body rotation
         head.model = glm::rotate(head.model, glm::radians(headRotationY), glm::vec3(0.0f, 1.0f, 0.0f));
         head.model = glm::scale(head.model, head.scale);
         
         // Front legs (apply body rotation to legs as well)
         leftFrontLeg.model = glm::mat4(1.0f);
         leftFrontLeg.model = glm::translate(leftFrontLeg.model, leftFrontLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f));
-        leftFrontLeg.model = glm::rotate(leftFrontLeg.model, leftFrontLeg.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-        leftFrontLeg.model = glm::rotate(leftFrontLeg.model, leftFrontLeg.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-        leftFrontLeg.model = glm::rotate(leftFrontLeg.model, leftFrontLeg.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+        leftFrontLeg.model = glm::rotate(leftFrontLeg.model, glm::radians(leftFrontLeg.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
         leftFrontLeg.model = glm::translate(leftFrontLeg.model, glm::vec3(0.0f, frontAttachY, frontAttachZ));
         leftFrontLeg.model = glm::rotate(leftFrontLeg.model, glm::radians(frontLeftLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
         leftFrontLeg.model = glm::translate(leftFrontLeg.model, glm::vec3(0.0f, -frontAttachY, -frontAttachZ));
@@ -212,9 +206,7 @@ void Creeper::update() {
         
         rightFrontLeg.model = glm::mat4(1.0f);
         rightFrontLeg.model = glm::translate(rightFrontLeg.model, rightFrontLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f));
-        rightFrontLeg.model = glm::rotate(rightFrontLeg.model, rightFrontLeg.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-        rightFrontLeg.model = glm::rotate(rightFrontLeg.model, rightFrontLeg.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-        rightFrontLeg.model = glm::rotate(rightFrontLeg.model, rightFrontLeg.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+        rightFrontLeg.model = glm::rotate(rightFrontLeg.model, glm::radians(rightFrontLeg.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
         rightFrontLeg.model = glm::translate(rightFrontLeg.model, glm::vec3(0.0f, frontAttachY, frontAttachZ));
         rightFrontLeg.model = glm::rotate(rightFrontLeg.model, glm::radians(frontRightLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
         rightFrontLeg.model = glm::translate(rightFrontLeg.model, glm::vec3(0.0f, -frontAttachY, -frontAttachZ));
@@ -223,9 +215,7 @@ void Creeper::update() {
         // Back legs (apply body rotation to legs as well)
         leftBackLeg.model = glm::mat4(1.0f);
         leftBackLeg.model = glm::translate(leftBackLeg.model, leftBackLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f));
-        leftBackLeg.model = glm::rotate(leftBackLeg.model, leftBackLeg.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-        leftBackLeg.model = glm::rotate(leftBackLeg.model, leftBackLeg.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-        leftBackLeg.model = glm::rotate(leftBackLeg.model, leftBackLeg.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+        leftBackLeg.model = glm::rotate(leftBackLeg.model, glm::radians(leftBackLeg.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
         leftBackLeg.model = glm::translate(leftBackLeg.model, glm::vec3(0.0f, backAttachY, backAttachZ));
         leftBackLeg.model = glm::rotate(leftBackLeg.model, glm::radians(backLeftLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
         leftBackLeg.model = glm::translate(leftBackLeg.model, glm::vec3(0.0f, -backAttachY, -backAttachZ));
@@ -233,9 +223,7 @@ void Creeper::update() {
         
         rightBackLeg.model = glm::mat4(1.0f);
         rightBackLeg.model = glm::translate(rightBackLeg.model, rightBackLeg.position + glm::vec3(0.0f, bodyHeight, 0.0f) );
-        rightBackLeg.model = glm::rotate(rightBackLeg.model, rightBackLeg.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-        rightBackLeg.model = glm::rotate(rightBackLeg.model, rightBackLeg.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-        rightBackLeg.model = glm::rotate(rightBackLeg.model, rightBackLeg.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+        rightBackLeg.model = glm::rotate(rightBackLeg.model, glm::radians(rightBackLeg.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
         rightBackLeg.model = glm::translate(rightBackLeg.model, glm::vec3(0.0f, backAttachY, backAttachZ));
         rightBackLeg.model = glm::rotate(rightBackLeg.model, glm::radians(backRightLegAngle), glm::vec3(1.0f, 0.0f, 0.0f));
         rightBackLeg.model = glm::translate(rightBackLeg.model, glm::vec3(0.0f, -backAttachY, -backAttachZ));

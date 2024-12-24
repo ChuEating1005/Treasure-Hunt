@@ -9,7 +9,7 @@
 Steve::Steve() {
     // Initialize animation variables
     animationTime = 0.0f;
-    walkSpeed = 0.1f;
+    walkSpeed = 0.08f;
     isWalking = false;
 }
 

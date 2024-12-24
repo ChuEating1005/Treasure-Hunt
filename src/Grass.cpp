@@ -7,7 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 Grass::Grass() {
-    scaleRatio = 5.0f;
+    scaleRatio = 3.0f;
 }
 
 Grass::~Grass() {
@@ -21,12 +21,9 @@ void Grass::setup(const string& objDir, const string& textureDir){
     grass.scale = glm::vec3(scaleRatio * 1.0f, scaleRatio * 1.0f, scaleRatio * 1.0f);
     grass.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
     
-    // Create object with MTL support by omitting the second parameter (defaults to true)
     grass.object = new Object(objDir + "grass/grass.obj");
     grass.object->load_to_buffer();
-    
-    // Load a texture explicitly if needed
-    grass.object->load_texture(textureDir + "grass.png");  // Add this if you have a texture
+    grass.object->load_texture(textureDir + "grass.png"); 
     
     grass.model = glm::mat4(1.0f);
     grass.model = glm::translate(grass.model, grass.position);
@@ -53,4 +50,9 @@ void Grass::render(shader_program_t* shader, const glm::mat4& view, const glm::m
 }
 
 void Grass::update() {
+    grass.model = glm::mat4(1.0f);
+    grass.model = glm::translate(grass.model, grass.position);
+    grass.model = glm::rotate(grass.model, glm::radians(grass.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));        
+    grass.model = glm::scale(grass.model, grass.scale);
 }
+
