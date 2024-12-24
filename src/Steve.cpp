@@ -15,6 +15,8 @@ Steve::Steve() {
     direction = glm::vec3(0.0f, 0.0f, 1.0f);  // 預設朝向 -z 方向
     headRotationX = 0.0f;
     headRotationY = 0.0f;
+    isDead = false;
+    deathRotation = 0.0f;
 }
 
 Steve::~Steve() {
@@ -106,6 +108,7 @@ void Steve::render(shader_program_t* shader, const glm::mat4& view, const glm::m
     shader->set_uniform_value("isShimmering", false);
     shader->set_uniform_value("explodeFactor", 0.0f);
     shader->set_uniform_value("whiteFlash", false);
+    shader->set_uniform_value("isDead", isDead);
 
     // Render body
     shader->set_uniform_value("model", body.model);
@@ -131,58 +134,142 @@ void Steve::render(shader_program_t* shader, const glm::mat4& view, const glm::m
 }
 
 void Steve::update() {
-    if (!isWalking) return;
-    
-    animationTime += swingSpeed;
+    if(!isDead){
+        // 如果不在走路狀態，但手腳還沒回到原位，就執行回歸動畫
+        if (!isWalking && !(
+            leftHand.rotation.x == 0.0f && rightHand.rotation.x == 0.0f && 
+            leftLeg.rotation.x == 0.0f && rightLeg.rotation.x == 0.0f)) {
 
-    // Update body model matrix
-    body.model = glm::mat4(1.0f);
-    body.model = glm::translate(body.model, body.position);
-    body.model = glm::rotate(body.model, body.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-    body.model = glm::scale(body.model, body.scale);
+            const float returnSpeed = swingSpeed * 45.0f;
+            
+            // 手臂回歸
+            if (leftHand.rotation.x > 0.0f) {
+                leftHand.rotation.x = std::max(0.0f, leftHand.rotation.x - returnSpeed);
+            } else if (leftHand.rotation.x < 0.0f) {
+                leftHand.rotation.x = std::min(0.0f, leftHand.rotation.x + returnSpeed);
+            }
+            
+            if (rightHand.rotation.x > 0.0f) {
+                rightHand.rotation.x = std::max(0.0f, rightHand.rotation.x - returnSpeed);
+            } else if (rightHand.rotation.x < 0.0f) {
+                rightHand.rotation.x = std::min(0.0f, rightHand.rotation.x + returnSpeed);
+            }
+            
+            // 腿部回歸
+            if (leftLeg.rotation.x > 0.0f) {
+                leftLeg.rotation.x = std::max(0.0f, leftLeg.rotation.x - returnSpeed);
+            } else if (leftLeg.rotation.x < 0.0f) {
+                leftLeg.rotation.x = std::min(0.0f, leftLeg.rotation.x + returnSpeed);
+            }
+            
+            if (rightLeg.rotation.x > 0.0f) {
+                rightLeg.rotation.x = std::max(0.0f, rightLeg.rotation.x - returnSpeed);
+            } else if (rightLeg.rotation.x < 0.0f) {
+                rightLeg.rotation.x = std::min(0.0f, rightLeg.rotation.x + returnSpeed);
+            }
+        }
+        animationTime += swingSpeed;
+
+        // Update body model matrix
+        body.model = glm::mat4(1.0f);
+        body.model = glm::translate(body.model, body.position);
+        body.model = glm::rotate(body.model, body.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+        body.model = glm::scale(body.model, body.scale);
+        
+        // Update head model matrix with rotation
+        head.model = glm::mat4(1.0f);
+        head.model = glm::translate(head.model, head.position + headOffset);
+        head.model = glm::rotate(head.model, glm::radians(headRotationY), glm::vec3(0.0f, 1.0f, 0.0f));
+        head.model = glm::rotate(head.model, glm::radians(headRotationX), glm::vec3(1.0f, 0.0f, 0.0f));
+        head.model = glm::translate(head.model, -headOffset);
+        head.model = glm::scale(head.model, head.scale);
+        
+        // Arm swing
+        if (isWalking) {
+            float armSwing = sin(animationTime) * 45.0f; // 45 degree swing angle
+            leftHand.rotation.x = armSwing;
+            rightHand.rotation.x = -armSwing;
+        }
+        
+        // Update arm model matrix
+        
+        leftHand.model = glm::mat4(1.0f);
+        leftHand.model = glm::translate(leftHand.model, leftHand.position + lefthandOffset);
+        leftHand.model = glm::rotate(leftHand.model, glm::radians(leftHand.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        leftHand.model = glm::translate(leftHand.model, -lefthandOffset);
+        leftHand.model = glm::scale(leftHand.model, leftHand.scale);
+        
+        rightHand.model = glm::mat4(1.0f);
+        rightHand.model = glm::translate(rightHand.model, rightHand.position + righthandOffset);
+        rightHand.model = glm::rotate(rightHand.model, glm::radians(rightHand.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        rightHand.model = glm::translate(rightHand.model, -righthandOffset);
+        rightHand.model = glm::scale(rightHand.model, rightHand.scale);
+        
+        // Leg swing
+        if (isWalking) {
+            float legSwing = sin(animationTime) * 30.0f; // 30 degree swing angle
+            leftLeg.rotation.x = -legSwing;
+            rightLeg.rotation.x = legSwing;
+        }
+        
+        // Update leg model matrix
+        leftLeg.model = glm::mat4(1.0f);
+        leftLeg.model = glm::translate(leftLeg.model, leftLeg.position);
+        leftLeg.model = glm::rotate(leftLeg.model, glm::radians(leftLeg.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        leftLeg.model = glm::scale(leftLeg.model, leftLeg.scale);
+        
+        rightLeg.model = glm::mat4(1.0f);
+        rightLeg.model = glm::translate(rightLeg.model, rightLeg.position);
+        rightLeg.model = glm::rotate(rightLeg.model, glm::radians(rightLeg.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        rightLeg.model = glm::scale(rightLeg.model, rightLeg.scale);
+    }
+    else{
+        // 如果死亡，整個身體要向後倒下
+        glm::vec3 deathRotationVec = glm::vec3(0.0f, 0.0f, -1.0f);
+
+        // 更新死亡動畫
+        if (deathRotation < 90.0f) {
+            deathRotation = std::min(90.0f, deathRotation + DEATH_ROTATION_SPEED);
+        } 
+
+        // Body transformation
+        body.model = glm::mat4(1.0f);
+        body.model = glm::translate(body.model, body.position);
+        body.model = glm::rotate(body.model, glm::radians(deathRotation), deathRotationVec);  // 死亡旋轉
+        body.model = glm::scale(body.model, body.scale);
+
+        // Head transformation
+        head.model = glm::mat4(1.0f);
+        head.model = glm::translate(head.model, head.position);
+        head.model = glm::rotate(head.model, glm::radians(deathRotation), deathRotationVec);  // 死亡旋轉
+        head.model = glm::scale(head.model, head.scale);
+
+        // Left hand transformation
+        leftHand.model = glm::mat4(1.0f);
+        leftHand.model = glm::translate(leftHand.model, leftHand.position);
+        leftHand.model = glm::rotate(leftHand.model, glm::radians(deathRotation), deathRotationVec);  // 死亡旋轉
+        leftHand.model = glm::scale(leftHand.model, leftHand.scale);
+
+        // Right hand transformation
+        rightHand.model = glm::mat4(1.0f);
+        rightHand.model = glm::translate(rightHand.model, rightHand.position);
+        rightHand.model = glm::rotate(rightHand.model, glm::radians(deathRotation), deathRotationVec);  // 死亡旋轉
+        rightHand.model = glm::scale(rightHand.model, rightHand.scale);
+
+        // Left leg transformation
+        leftLeg.model = glm::mat4(1.0f);
+        leftLeg.model = glm::translate(leftLeg.model, leftLeg.position);
+        leftLeg.model = glm::rotate(leftLeg.model, glm::radians(deathRotation), deathRotationVec);  // 死亡旋轉
+        leftLeg.model = glm::scale(leftLeg.model, leftLeg.scale);
+
+        // Right leg transformation
+        rightLeg.model = glm::mat4(1.0f);
+        rightLeg.model = glm::translate(rightLeg.model, rightLeg.position);
+        rightLeg.model = glm::rotate(rightLeg.model, glm::radians(deathRotation), deathRotationVec);  // 死亡旋轉
+        rightLeg.model = glm::scale(rightLeg.model, rightLeg.scale);
+    }
     
-    // Update head model matrix with rotation
-    head.model = glm::mat4(1.0f);
-    head.model = glm::translate(head.model, head.position + headOffset);
-    head.model = glm::rotate(head.model, glm::radians(headRotationY), glm::vec3(0.0f, 1.0f, 0.0f));
-    head.model = glm::rotate(head.model, glm::radians(headRotationX), glm::vec3(1.0f, 0.0f, 0.0f));
-    head.model = glm::translate(head.model, -headOffset);
-    head.model = glm::scale(head.model, head.scale);
     
-    // Arm swing
-    float armSwing = sin(animationTime) * 45.0f; // 45 degree swing angle
-    leftHand.rotation.x = armSwing;
-    rightHand.rotation.x = -armSwing;
-    
-    // Update arm model matrix
-    
-    leftHand.model = glm::mat4(1.0f);
-    leftHand.model = glm::translate(leftHand.model, leftHand.position + lefthandOffset);
-    leftHand.model = glm::rotate(leftHand.model, glm::radians(leftHand.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-    leftHand.model = glm::translate(leftHand.model, -lefthandOffset);
-    leftHand.model = glm::scale(leftHand.model, leftHand.scale);
-    
-    rightHand.model = glm::mat4(1.0f);
-    rightHand.model = glm::translate(rightHand.model, rightHand.position + righthandOffset);
-    rightHand.model = glm::rotate(rightHand.model, glm::radians(rightHand.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-    rightHand.model = glm::translate(rightHand.model, -righthandOffset);
-    rightHand.model = glm::scale(rightHand.model, rightHand.scale);
-    
-    // Leg swing
-    float legSwing = sin(animationTime) * 30.0f; // 30 degree swing angle
-    leftLeg.rotation.x = -legSwing;
-    rightLeg.rotation.x = legSwing;
-    
-    // Update leg model matrix
-    leftLeg.model = glm::mat4(1.0f);
-    leftLeg.model = glm::translate(leftLeg.model, leftLeg.position);
-    leftLeg.model = glm::rotate(leftLeg.model, glm::radians(leftLeg.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-    leftLeg.model = glm::scale(leftLeg.model, leftLeg.scale);
-    
-    rightLeg.model = glm::mat4(1.0f);
-    rightLeg.model = glm::translate(rightLeg.model, rightLeg.position);
-    rightLeg.model = glm::rotate(rightLeg.model, glm::radians(rightLeg.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-    rightLeg.model = glm::scale(rightLeg.model, rightLeg.scale);
 }
 
 void Steve::walk() {
@@ -251,7 +338,6 @@ void Steve::rotateHead(float xoffset, float yoffset) {
         headRotationX = 45.0f * (headRotationX / abs(headRotationX));
     if(abs(headRotationY) > 45.0f)
         headRotationY = 45.0f * (headRotationY / abs(headRotationY));
-    isWalking = true;
 }
 
 glm::vec3 Steve::getEyePosition() const {
@@ -268,4 +354,13 @@ glm::vec3 Steve::getViewDirection() const {
     direction.z = sin(glm::radians(adjustedRotationY)) * cos(glm::radians(headRotationX));
     
     return glm::normalize(direction);
+}
+
+void Steve::die() {
+    isDead = true;
+}
+
+void Steve::revive() {
+    isDead = false;
+    deathRotation = 0.0f;  // 重置旋轉角度
 }
