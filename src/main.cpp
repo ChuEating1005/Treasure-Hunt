@@ -160,6 +160,7 @@ void shader_setup(){
 
     std::vector<std::string> shadingMethod = {
         "default",                              // default shading
+        "steve",                                // steve shading
         // "bling-phong", "gouraud", "metallic",   // addional shading effects (basic)
         // "glass_schlick", "glass_empricial",     // addional shading effects (advanced)
     };
@@ -172,7 +173,9 @@ void shader_setup(){
         shader_program_t* shaderProgram = new shader_program_t();
         shaderProgram->create();
         shaderProgram->add_shader(vpath, GL_VERTEX_SHADER);
-        shaderProgram->add_shader(gpath, GL_GEOMETRY_SHADER);
+        if (shadingMethod[i] == "default") {
+            shaderProgram->add_shader(gpath, GL_GEOMETRY_SHADER);
+        }
         shaderProgram->add_shader(fpath, GL_FRAGMENT_SHADER);
         shaderProgram->link_shader();
         shaderPrograms.push_back(shaderProgram);
@@ -196,12 +199,12 @@ void cubemap_setup(){
     // setup texture for cubemap
     std::vector<std::string> faces
     {
-        cubemapDir + "right.jpg",
-        cubemapDir + "left.jpg",
-        cubemapDir + "top.jpg",
-        cubemapDir + "bottom.jpg",
-        cubemapDir + "front.jpg",
-        cubemapDir + "back.jpg"
+        cubemapDir + "right.png",
+        cubemapDir + "left.png",
+        cubemapDir + "top.png",
+        cubemapDir + "bottom.png",
+        cubemapDir + "front.png",
+        cubemapDir + "back.png"
     };
     cubemapTexture = loadCubemap(faces);   
 
@@ -300,7 +303,7 @@ void render(){
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
     
     steve->update();
-    steve->render(shaderPrograms[shaderProgramIndex], view, projection);
+    steve->render(shaderPrograms[1], view, projection);
 
     chest->update();
     chest->render(shaderPrograms[shaderProgramIndex], view, projection);
@@ -376,8 +379,8 @@ void render(){
     cubemapShader->release();
 
     // Render ground
-    ground->update();
-    ground->render(shaderPrograms[shaderProgramIndex], view, projection);
+    // ground->update();
+    // ground->render(shaderPrograms[shaderProgramIndex], view, projection);
 }
 
 
@@ -559,10 +562,17 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
         creeper->toggleWalking();
     }
 
-    // 視角切換 (按V鍵)
     if (key == GLFW_KEY_V && action == GLFW_PRESS) {
         camera.firstPersonView = !camera.firstPersonView;
         std::cout << (camera.firstPersonView ? "First Person View" : "Third Person View") << std::endl;
+    }
+
+    if (key == GLFW_KEY_B && action == GLFW_PRESS) {
+        steve->die();
+    }
+
+    if (key == GLFW_KEY_N && action == GLFW_PRESS) {
+        steve->revive();
     }
 }
 
@@ -588,7 +598,7 @@ unsigned int loadCubemap(vector<std::string>& faces){
         if (data)
         {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
-                         0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+                         0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
             );
             stbi_image_free(data);
         }
