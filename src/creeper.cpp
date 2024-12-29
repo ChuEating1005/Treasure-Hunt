@@ -12,14 +12,14 @@ Creeper::Creeper() :
     explodeFactor(0.0f),
     isExploded(false), // Initialize isExploded
     scaleRatio(8.0f),
-    walkingSpeed(0.08f),
+    walkingSpeed(0.05f),
     walkingDirection(0.0f, 0.0f, 1.0f),  // Initially walking forward
     isJumping(false),
     verticalVelocity(0.0f),
-    initialJumpVelocity(2.0f),  // Increased from 1.0f
-    gravity(0.05f),
+    initialJumpVelocity(0.5f),  // Increased from 1.0f
+    gravity(0.03f),
     groundLevel(0.0f),
-    position(0.0f, 0.0f, -20.0f)  // Initialize position
+    position(0.0f, 0.0f, -50.0f)  // Initialize position
 {}
 
 Creeper::~Creeper() {
@@ -33,7 +33,6 @@ Creeper::~Creeper() {
 
 void Creeper::setup(const std::string& objDir, const std::string& textureDir) {
     // Initialize base properties
-    position = glm::vec3(0.0f, 0.0f, 0.0f);  // Set initial position
     glm::vec3 baseScale(scaleRatio*1.0f, scaleRatio*1.0f, scaleRatio*1.0f);
     glm::vec3 baseRotation(0.0f, 180.0f, 0.0f);
 

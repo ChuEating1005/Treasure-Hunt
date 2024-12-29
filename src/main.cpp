@@ -17,6 +17,7 @@
 void framebufferSizeCallback(GLFWwindow *window, int width, int height);
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 void cursorCallback(GLFWwindow* window, double xpos, double ypos);
+void mouseCallback(GLFWwindow* window, int button, int action, int mods);
 unsigned int loadCubemap(std::vector<string> &mFileName);
 
 struct material_t{
@@ -123,7 +124,7 @@ bool firstMouse = true;
 // You can change any of the settings if you want
 
 void camera_setup(){
-    camera.position = glm::vec3(0.0, 10.0, 100.0);
+    camera.position = glm::vec3(0.0, 30.0, 100.0);
     camera.up = glm::vec3(0.0, 1.0, 0.0);
     camera.rotationY = 0;
     camera.firstPersonView = false;
@@ -203,7 +204,7 @@ void shader_setup(){
 #endif
 
     std::vector<std::string> shadingMethod = {
-        "default",                              // default shading
+        "creeper",                              // default shading
         "steve",                                // steve shading
         // "bling-phong", "gouraud", "metallic",   // addional shading effects (basic)
         // "glass_schlick", "glass_empricial",     // addional shading effects (advanced)
@@ -217,7 +218,7 @@ void shader_setup(){
         shader_program_t* shaderProgram = new shader_program_t();
         shaderProgram->create();
         shaderProgram->add_shader(vpath, GL_VERTEX_SHADER);
-        if (shadingMethod[i] == "default") {
+        if (shadingMethod[i] == "creeper") {
             shaderProgram->add_shader(gpath, GL_GEOMETRY_SHADER);
         }
         shaderProgram->add_shader(fpath, GL_FRAGMENT_SHADER);
@@ -243,12 +244,6 @@ void cubemap_setup(){
     // setup texture for cubemap
     std::vector<std::string> faces
     {
-        cubemapDir + "right.png",
-        cubemapDir + "left.png",
-        cubemapDir + "top.png",
-        cubemapDir + "bottom.png",
-        cubemapDir + "front.png",
-        cubemapDir + "back.png"
         cubemapDir + "right.png",
         cubemapDir + "left.png",
         cubemapDir + "top.png",
@@ -307,57 +302,55 @@ void setup(){
 }
 
 void updateCamera() {
-    glm::vec3 eyePos = steve->getEyePosition();
-    glm::vec3 viewDir = steve->getViewDirection();
     
     if (camera.firstPersonView) {
         // 第一人稱視角 - 相機位於史蒂夫眼睛位置
+        glm::vec3 eyePos = steve->getEyePosition();
+        glm::vec3 viewDir = steve->getViewDirection();
         camera.position = eyePos;
         camera.rotationY = glm::degrees(atan2(viewDir.z, viewDir.x));
+        camera.rotationY = (camera.rotationY > 360.0) ? camera.rotationY - 360.0 : camera.rotationY;
+        cameraModel = glm::mat4(1.0f);
+        cameraModel = glm::translate(cameraModel, camera.position);
+        cameraModel = glm::rotate(cameraModel, glm::radians(camera.rotationY - 90.0f), camera.up);
     } else {
         // 第三人稱視角 - 相機在史蒂夫身後
-        camera.position = eyePos - (viewDir * 10.0f) + glm::vec3(0.0f, 2.0f, 0.0f);
-        camera.position += glm::vec3(0.0f, 10.0f, -30.0f);
-        camera.rotationY = glm::degrees(atan2(viewDir.z, viewDir.x));
-    }
+        camera.rotationY = (camera.rotationY > 360.0) ? 0.0 : camera.rotationY;
+        cameraModel = glm::mat4(1.0f);
+        cameraModel = glm::rotate(cameraModel, glm::radians(camera.rotationY), camera.up);
+        cameraModel = glm::translate(cameraModel, camera.position);
 
-    // 更新相機模型矩陣
-    camera.rotationY = (camera.rotationY > 360.0) ? camera.rotationY - 360.0 : camera.rotationY;
-    cameraModel = glm::mat4(1.0f);
-    cameraModel = glm::translate(cameraModel, camera.position);
-    cameraModel = glm::rotate(cameraModel, glm::radians(camera.rotationY - 90.0f), camera.up);
-    ;
-
-    // Check collisions before updating creeper position
-    glm::vec3 nextCreeperPos = creeper->getNextPosition();
-    bool collisionDetected = false;
-    
-    // Check collision with Steve
-    if (checkCollision(nextCreeperPos, steve->getPosition())) {
-        collisionDetected = true;
-    }
-    
-    // Check collision with Chest
-    if (checkCollision(nextCreeperPos, chest->getPosition())) {
-        if (!creeper->getIsJumping()) {
+        // Check collisions before updating creeper position
+        glm::vec3 nextCreeperPos = creeper->getNextPosition();
+        bool collisionDetected = false;
+        
+        // Check collision with Steve
+        if (checkCollision(nextCreeperPos, steve->getPosition())) {
             collisionDetected = true;
         }
-    } else {
-        // Only reset ground level if we're not on top of the chest
-        if (abs(creeper->getGroundLevel() - (chest->getPosition().y + 15.0f)) > 0.1f) {
-            creeper->setGroundLevel(0.0f);
+        
+        // Check collision with Chest
+        if (checkCollision(nextCreeperPos, chest->getPosition())) {
+            if (!creeper->getIsJumping()) {
+                collisionDetected = true;
+            }
+        } else {
+            // Only reset ground level if we're not on top of the chest
+            if (abs(creeper->getGroundLevel() - (chest->getPosition().y + 15.0f)) > 0.1f) {
+                creeper->setGroundLevel(0.0f);
+            }
         }
-    }
-    
-    if (!collisionDetected) {
-        creeper->update();
-    } else {
-        creeper->stopMoving();
-    }
+        
+        if (!collisionDetected) {
+            creeper->update();
+        } else {
+            creeper->stopMoving();
+        }
 
-    // Update other objects
-    steve->update();
-    chest->update();
+        // Update other objects
+        steve->update();
+        chest->update();
+    }
 }
 
 void render(){
@@ -390,10 +383,10 @@ void render(){
     steve->render(shaderPrograms[1], view, projection);
 
     chest->update();
-    chest->render(shaderPrograms[shaderProgramIndex], view, projection);
+    chest->render(shaderPrograms[0], view, projection);
 
     creeper->update();
-    creeper->render(shaderPrograms[shaderProgramIndex], view, projection);
+    creeper->render(shaderPrograms[0], view, projection);
 
     // for(Grass* grass : grasses) {
     //     grass->update();
@@ -509,6 +502,9 @@ int main() {
         glfwMakeContextCurrent(window);
         glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
         glfwSetKeyCallback(window, keyCallback);
+        glfwSetMouseButtonCallback(window, mouseCallback);
+        glfwSetCursorPosCallback(window, cursorCallback);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         glfwSwapInterval(1);
 
         // glad: load all OpenGL function pointers
@@ -529,13 +525,7 @@ int main() {
             glfwTerminate();
             return -1;
         }
-
-        // 註冊滑鼠回調
-        glfwSetCursorPosCallback(window, cursorCallback);
         
-        // 捕捉滑鼠
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
         // Render loop
         while (!glfwWindowShouldClose(window)) {
             try {
@@ -570,6 +560,12 @@ int main() {
         std::cerr << "Fatal error: " << e.what() << std::endl;
         glfwTerminate();
         return -1;
+    }
+}
+
+void mouseCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        steve->startSwing();
     }
 }
 
@@ -616,6 +612,14 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
 
     // camera movement
     float cameraSpeed = 0.5f;
+    if (key == GLFW_KEY_UP && (action == GLFW_REPEAT || action == GLFW_PRESS))
+        camera.position.z -= 10.0;
+    if (key == GLFW_KEY_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS))
+        camera.position.z += 10.0;
+    if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS))
+        camera.rotationY -= 10.0;
+    if (key == GLFW_KEY_RIGHT && (action == GLFW_REPEAT || action == GLFW_PRESS))
+        camera.rotationY += 10.0;
     if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS))
         // camera.position.z -= 10.0;
         steve->moveForward();
@@ -642,24 +646,27 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_J && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
         creeper->rotateHead(5.0f);   // Turn head right
     }
-    
     if (key == GLFW_KEY_H && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
         creeper->toggleScaleAndShimmer();
     }
-
-    if (key == GLFW_KEY_K && action == GLFW_PRESS) {
-        creeper->toggleWalking();
+    if (key == GLFW_KEY_K) {
+        if (action == GLFW_PRESS) {
+            creeper->startMovingForward();  // Start moving when pressed
+        }
+        else if (action == GLFW_RELEASE) {
+            creeper->stopMoving();  // Stop moving when released
+        }
     }
-
+    if (key == GLFW_KEY_I && action == GLFW_PRESS) {
+        creeper->jump();  // Can now be triggered while walking
+    }
     if (key == GLFW_KEY_V && action == GLFW_PRESS) {
         camera.firstPersonView = !camera.firstPersonView;
         std::cout << (camera.firstPersonView ? "First Person View" : "Third Person View") << std::endl;
     }
-
     if (key == GLFW_KEY_B && action == GLFW_PRESS) {
         steve->die();
     }
-
     if (key == GLFW_KEY_N && action == GLFW_PRESS) {
         steve->revive();
     }

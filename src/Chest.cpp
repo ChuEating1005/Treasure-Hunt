@@ -21,12 +21,12 @@ Chest::~Chest() {
 
 void Chest::setup(const string& objDir, const string& textureDir){
     
-    container.position = glm::vec3(0.0f, 0.0f, 100.0f);
+    container.position = glm::vec3(0.0f, 0.0f, 20.0f);
     container.scale = glm::vec3(scaleRatio * 1.0f, scaleRatio * 1.0f, scaleRatio * 1.0f);
     container.rotation = glm::vec3(0.0f, 90.0f, 0.0f);
     container.object = new Object(objDir + "chest/container.obj");
     container.object->load_to_buffer();
-    container.object->load_texture(textureDir + "chest1.png");
+    container.object->load_texture(textureDir + "chest.png");
     container.model = glm::mat4(1.0f);
     container.model = glm::translate(container.model, container.position);
     container.model = glm::rotate(container.model, glm::radians(container.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -37,7 +37,7 @@ void Chest::setup(const string& objDir, const string& textureDir){
     lid.rotation = container.rotation;
     lid.object = new Object(objDir + "chest/lid.obj");
     lid.object->load_to_buffer();
-    lid.object->load_texture(textureDir + "chest1.png");
+    lid.object->load_texture(textureDir + "chest.png");
     lid.model = glm::mat4(1.0f);
     lid.model = glm::translate(lid.model, lid.position);
     lid.model = glm::rotate(lid.model, glm::radians(lid.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -50,6 +50,8 @@ void Chest::render(shader_program_t* shader, const glm::mat4& view, const glm::m
     // Set matrix for view, projection, model transformation
     shader->set_uniform_value("view", view);
     shader->set_uniform_value("projection", projection);
+    shader->set_uniform_value("isShimmering", false);
+
 
     shader->set_uniform_value("model", container.model);
     container.object->render();
