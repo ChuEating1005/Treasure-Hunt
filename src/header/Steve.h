@@ -22,13 +22,18 @@ public:
     void moveRight();
     void stopMoving();
     void rotateHead(float xoffset, float yoffset);
-    void die();
-    void revive();
+    void die() {isDead = true;}
+    void revive() { isDead = false; deathRotation = 0.0f; }
+    void startSwing() { isSwinging = true; }
+    bool getIsSwinging() const { return isSwinging; }
     bool getIsDead() const { return isDead; }
     glm::vec3 getEyePosition() const;
     glm::vec3 getViewDirection() const;
+    glm::vec3 getPosition() const { return body.position; }
     float getHeadRotationX() const { return headRotationX; }
     float getHeadRotationY() const { return headRotationY; }
+    
+    
     
 private:
     struct ModelPart{
@@ -52,9 +57,14 @@ private:
     float headRotationX;
     float headRotationY;
     float deathRotation;
+    float swingRotation;
     bool isWalking;
     bool isDead;
+    bool isSwinging;
+    bool swingForward;
 
+    const float SWING_SPEED = 3.0f;
+    const float MAX_SWING_ANGLE = 70.0f;
     const float PI = 3.14159265359f;
     const float HEAD_ROTATION_SENSITIVITY = 0.1f;
     const float DEATH_ROTATION_SPEED = 7.0f;
