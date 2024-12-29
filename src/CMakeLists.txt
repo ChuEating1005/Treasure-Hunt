@@ -1,4 +1,4 @@
-add_executable(ICG_2024_HW4
+add_executable(Treasure-Hunt
 "main.cpp"
 "stb_image.cpp"
 "shader.cpp"
@@ -9,7 +9,7 @@ add_executable(ICG_2024_HW4
 "Ground.cpp"
 "Grass.cpp"
 ) 
-target_link_libraries(ICG_2024_HW4
+target_link_libraries(Treasure-Hunt
 glfw
 glm::glm
 glad
