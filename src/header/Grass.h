@@ -15,6 +15,15 @@ public:
     void setup(const string& objDir, const string& textureDir);
     void render(shader_program_t* shader, const glm::mat4& view, const glm::mat4& projection);
     void update();
+    void setPosition(const glm::vec3& pos) {
+        grass.position = pos;
+        update();
+    }
+    
+    void setRotation(const glm::vec3& rot) {
+        grass.rotation = rot;
+        update();
+    }
 private:
     struct ModelPart{
         glm::vec3 position;

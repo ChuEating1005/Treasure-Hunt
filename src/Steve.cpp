@@ -30,7 +30,7 @@ Steve::~Steve() {
 
 void Steve::setup(const string& objDir, const string& textureDir){
     
-    body.position = glm::vec3(0.0f, 5.0f, 0.0f);
+    body.position = glm::vec3(0.0f, 5.0f, -50.0f);
     body.scale = glm::vec3(1.0f, 1.0f, 1.0f);
     body.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
     body.object = new Object(objDir + "steve/body.obj");

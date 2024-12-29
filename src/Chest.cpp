@@ -21,7 +21,7 @@ Chest::~Chest() {
 
 void Chest::setup(const string& objDir, const string& textureDir){
     
-    container.position = glm::vec3(0.0f, 0.0f, 10.0f);
+    container.position = glm::vec3(0.0f, 0.0f, 100.0f);
     container.scale = glm::vec3(scaleRatio * 1.0f, scaleRatio * 1.0f, scaleRatio * 1.0f);
     container.rotation = glm::vec3(0.0f, 90.0f, 0.0f);
     container.object = new Object(objDir + "chest/container.obj");
@@ -50,11 +50,6 @@ void Chest::render(shader_program_t* shader, const glm::mat4& view, const glm::m
     // Set matrix for view, projection, model transformation
     shader->set_uniform_value("view", view);
     shader->set_uniform_value("projection", projection);
-
-    // Set material properties
-    shader->set_uniform_value("isShimmering", false);
-    shader->set_uniform_value("explodeFactor", 0.0f);
-    shader->set_uniform_value("whiteFlash", false);
 
     shader->set_uniform_value("model", container.model);
     container.object->render();
